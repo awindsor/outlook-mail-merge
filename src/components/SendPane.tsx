@@ -151,8 +151,8 @@ export const SendPane: React.FC<SendPaneProps> = ({
       const errors: string[] = [];
       let ewsFailedOnce = false;
 
-      // Try EWS first if available (desktop), but fall back to displayNewMessageForm if it fails
-      let useEws = hasEws;
+      // Skip EWS for now since it's failing - use displayNewMessageForm directly
+      let useEws = false; // hasEws;
 
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i];
