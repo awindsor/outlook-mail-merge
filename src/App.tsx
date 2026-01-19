@@ -34,8 +34,18 @@ export const App: React.FC = () => {
       const officeObj = (window as any).Office;
       if (officeObj && officeObj.context && officeObj.context.mailbox && officeObj.context.mailbox.item) {
         const item = officeObj.context.mailbox.item;
+        
+        // Get subject
         const subject = item.subject || '';
         setMessageSubject(subject);
+        
+        // Get To field
+        if (item.to && Array.isArray(item.to) && item.to.length > 0) {
+          const toAddresses = item.to.map((recipient: any) => recipient.emailAddress).join(', ');
+          setToTemplate(toAddresses);
+        }
+        
+        // Get body
         if (item.body && typeof item.body.getAsync === 'function') {
           item.body.getAsync('html', (result: any) => {
             if (result && result.value) {
