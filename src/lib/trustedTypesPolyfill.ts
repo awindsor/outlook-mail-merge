@@ -5,16 +5,18 @@
  */
 
 export function initTrustedTypesPolyfill(): void {
+  const w = window as any;
+  
   // Only run if trustedTypes exists (browser supports the API)
-  if (!window.trustedTypes) {
+  if (!w.trustedTypes) {
     return;
   }
 
   // Store the original createPolicy function
-  const originalCreatePolicy = window.trustedTypes.createPolicy.bind(window.trustedTypes);
+  const originalCreatePolicy = w.trustedTypes.createPolicy.bind(w.trustedTypes);
 
   // Override createPolicy to catch and suppress errors for disallowed policies
-  window.trustedTypes.createPolicy = function(policyName: string, rules: any) {
+  w.trustedTypes.createPolicy = function(policyName: string, rules: any) {
     try {
       return originalCreatePolicy(policyName, rules);
     } catch (error) {
@@ -32,5 +34,5 @@ export function initTrustedTypesPolyfill(): void {
       // Re-throw other errors
       throw error;
     }
-  } as any;
+  };
 }
