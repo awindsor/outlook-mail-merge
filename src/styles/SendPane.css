@@ -1,0 +1,159 @@
+.send-pane {
+  max-width: 900px;
+}
+
+.incomplete-notice {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.incomplete-notice p {
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: #856404;
+}
+
+.incomplete-notice ul {
+  margin-left: 20px;
+  color: #856404;
+  font-size: 14px;
+}
+
+.send-summary {
+  background: #f0f8ff;
+  border: 1px solid #0078d4;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.send-summary h3 {
+  color: #0078d4;
+  margin-bottom: 12px;
+}
+
+.summary-info {
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.summary-info p {
+  margin-bottom: 8px;
+}
+
+.summary-info strong {
+  color: #0078d4;
+}
+
+.send-controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.send-button {
+  background: #0078d4;
+  color: white;
+  border-color: #0078d4;
+  padding: 12px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.send-button:hover:not(:disabled) {
+  background: #005a9e;
+  border-color: #005a9e;
+}
+
+.send-button:disabled {
+  background: #ccc;
+  border-color: #ccc;
+  color: white;
+  cursor: not-allowed;
+}
+
+.progress-section {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 30px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0078d4 0%, #1084d7 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  transition: width 0.3s ease;
+  min-width: 30px;
+}
+
+.progress-status {
+  font-size: 14px;
+  color: #333;
+  margin: 0;
+}
+
+.send-tips {
+  background: #f0f8ff;
+  border-left: 4px solid #0078d4;
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.send-tips h4 {
+  color: #0078d4;
+  margin-bottom: 8px;
+}
+
+.send-tips ul {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.workflow-notes {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.workflow-notes h4 {
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.workflow-notes ol {
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.workflow-notes li {
+  margin-bottom: 6px;
+}
