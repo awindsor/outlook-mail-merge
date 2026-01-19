@@ -31,6 +31,7 @@ export const App: React.FC = () => {
   const loadMessageFromOutlook = async () => {
     setIsLoadingMessage(true);
     setMessageError('');
+    
     try {
       const officeObj = (window as any).Office;
       if (!officeObj) {
@@ -54,11 +55,14 @@ export const App: React.FC = () => {
 
       console.log('Loading message from Outlook item...');
       
+      // Collect all the data first before setting state
+      const data: any = {};
+      
       // Get subject
       try {
         const subject = item.subject || '';
         console.log('Subject:', subject);
-        setMessageSubject(subject);
+        data.subject = subject;
       } catch (e) {
         console.error('Error getting subject:', e);
       }
@@ -68,7 +72,7 @@ export const App: React.FC = () => {
         if (item.to && Array.isArray(item.to) && item.to.length > 0) {
           const toAddresses = item.to.map((recipient: any) => recipient.emailAddress).join(', ');
           console.log('To addresses:', toAddresses);
-          setToTemplate(toAddresses);
+          data.to = toAddresses;
         } else {
           console.warn('No To field found');
         }
@@ -80,10 +84,11 @@ export const App: React.FC = () => {
       try {
         if (item.body && typeof item.body.getAsync === 'function') {
           item.body.getAsync('html', (result: any) => {
-            if (result.status === 'succeeded' && result.value) {
+            console.log('Body getAsync result:', result);
+            if (result && result.status === 'succeeded' && result.value) {
               console.log('Body loaded successfully');
               setMessageBody(result.value);
-            } else if (result.status === 'failed') {
+            } else if (result && result.status === 'failed') {
               console.error('Failed to get body:', result.error);
               setMessageError(`Failed to load body: ${result.error?.message || 'Unknown error'}`);
             }
@@ -95,7 +100,11 @@ export const App: React.FC = () => {
         console.error('Error setting up body getAsync:', e);
       }
       
-      console.log('Message load initiated');
+      // Update state with collected data
+      if (data.subject) setMessageSubject(data.subject);
+      if (data.to) setToTemplate(data.to);
+      
+      console.log('Message load initiated with data:', data);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       console.error('Error loading message from Outlook:', err);
