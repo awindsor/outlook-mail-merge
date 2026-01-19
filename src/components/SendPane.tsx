@@ -121,15 +121,17 @@ export const SendPane: React.FC<SendPaneProps> = ({
       const body = renderTemplate(safeTemplate.body, recipient);
       const toEmail = renderTemplate(toTemplate, recipient);
 
-      // Escape quotes and backslashes for AppleScript
+      // Escape quotes and backslashes for AppleScript, preserve line breaks
       const escapedSubject = subject.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      const escapedBody = body.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const escapedBody = body.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
       const escapedEmail = toEmail.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
       script += `\t-- Message ${index + 1} of ${recipients.length}\n`;
-      script += `\tset newMessage to make new outgoing message with properties {subject:"${escapedSubject}", content:"${escapedBody}"}\n`;
+      script += `\tset newMessage to make new outgoing message with properties {subject:"${escapedSubject}"}\n`;
       script += `\ttell newMessage\n`;
+      script += `\t\tset content to "${escapedBody}"\n`;
       script += `\t\tmake new recipient at end of to recipients with properties {email address:{address:"${escapedEmail}"}}\n`;
+      script += `\t\tsave\n`;
       script += `\tend tell\n\n`;
     });
 
