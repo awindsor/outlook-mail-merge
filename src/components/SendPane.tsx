@@ -114,7 +114,8 @@ export const SendPane: React.FC<SendPaneProps> = ({
     script += `-- This script creates ${recipients.length} draft messages in Microsoft Outlook\n`;
     script += `-- Double-click to run, or run from Script Editor\n\n`;
     script += `tell application "Microsoft Outlook"\n`;
-    script += `\tactivate\n\n`;
+    script += `\tactivate\n`;
+    script += `\tset draftFolder to drafts folder\n\n`;
 
     recipients.forEach((recipient, index) => {
       const subject = renderTemplate(safeTemplate.subject, recipient);
@@ -127,11 +128,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
       const escapedEmail = toEmail.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 
       script += `\t-- Message ${index + 1} of ${recipients.length}\n`;
-      script += `\tset newMessage to make new outgoing message with properties {subject:"${escapedSubject}"}\n`;
+      script += `\tset newMessage to make new outgoing message with properties {subject:"${escapedSubject}", content:"${escapedBody}"}\n`;
       script += `\ttell newMessage\n`;
-      script += `\t\tset content to "${escapedBody}"\n`;
       script += `\t\tmake new recipient at end of to recipients with properties {email address:{address:"${escapedEmail}"}}\n`;
-      script += `\t\tsave\n`;
+      script += `\t\tsave in draftFolder\n`;
       script += `\tend tell\n\n`;
     });
 
