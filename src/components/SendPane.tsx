@@ -33,6 +33,12 @@ export const SendPane: React.FC<SendPaneProps> = ({
   messageError,
   onSendComplete
 }) => {
+  // Ensure template has default values
+  const safeTemplate = {
+    subject: template?.subject || '',
+    body: template?.body || ''
+  };
+  
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<string>('');
@@ -40,14 +46,14 @@ export const SendPane: React.FC<SendPaneProps> = ({
 
   React.useEffect(() => {
     console.log('SendPane rendered with:', {
-      subject: template.subject,
-      bodyLength: template.body.length,
-      recipients: recipients.length,
+      subject: safeTemplate.subject,
+      bodyLength: safeTemplate.body.length,
+      recipients: recipients?.length || 0,
       toTemplate,
       messageError,
       isLoadingMessage
     });
-  }, [template.subject, template.body, recipients.length, toTemplate, messageError, isLoadingMessage]);
+  }, [safeTemplate.subject, safeTemplate.body, recipients?.length, toTemplate, messageError, isLoadingMessage]);
 
   const handleLoadClick = () => {
     console.log('Load button clicked');
@@ -60,15 +66,15 @@ export const SendPane: React.FC<SendPaneProps> = ({
   };
 
   const validateTemplate = (): boolean => {
-    if (!template.subject.trim()) {
+    if (!safeTemplate.subject.trim()) {
       setError('Subject line is required');
       return false;
     }
-    if (!template.body.trim()) {
+    if (!safeTemplate.body.trim()) {
       setError('Email body is required');
       return false;
     }
-    if (recipients.length === 0) {
+    if (!recipients || recipients.length === 0) {
       setError('No recipients loaded');
       return false;
     }
@@ -94,8 +100,8 @@ export const SendPane: React.FC<SendPaneProps> = ({
 
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i];
-        const subject = renderTemplate(template.subject, recipient);
-        const body = renderTemplate(template.body, recipient);
+        const subject = renderTemplate(safeTemplate.subject, recipient);
+        const body = renderTemplate(safeTemplate.body, recipient);
         const toEmail = renderTemplate(toTemplate, recipient);
 
         if (!toEmail) {
@@ -138,7 +144,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
     }
   };
 
-  if (recipients.length === 0) {
+  if (!recipients || recipients.length === 0) {
     return (
       <div className="send-pane">
         <div className="incomplete-notice">
@@ -170,15 +176,15 @@ export const SendPane: React.FC<SendPaneProps> = ({
       <div className="message-preview">
         <div className="preview-section">
           <h3>Subject</h3>
-          <p className="preview-text">{template.subject || '(No subject loaded)'}</p>
+          <p className="preview-text">{safeTemplate.subject || '(No subject loaded)'}</p>
         </div>
         <div className="preview-section">
           <h3>Body Preview</h3>
-          <p className="preview-text">{template.body ? template.body.substring(0, 100) + '...' : '(No body loaded)'}</p>
+          <p className="preview-text">{safeTemplate.body ? safeTemplate.body.substring(0, 100) + '...' : '(No body loaded)'}</p>
         </div>
         <div className="preview-section">
           <h3>Recipients</h3>
-          <p className="preview-text">{recipients.length} recipients will receive this message</p>
+          <p className="preview-text">{recipients?.length || 0} recipients will receive this message</p>
         </div>
       </div>
 
@@ -189,9 +195,9 @@ export const SendPane: React.FC<SendPaneProps> = ({
         <button
           className="send-button"
           onClick={createDrafts}
-          disabled={isSending || !template.subject || !template.body}
+          disabled={isSending || !safeTemplate.subject || !safeTemplate.body}
         >
-          {isSending ? 'Creating Drafts...' : `Create ${recipients.length} Email Drafts`}
+          {isSending ? 'Creating Drafts...' : `Create ${recipients?.length || 0} Email Drafts`}
         </button>
       </div>
 
