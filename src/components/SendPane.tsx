@@ -111,21 +111,26 @@ export const SendPane: React.FC<SendPaneProps> = ({
         }
 
         try {
-          // Use Office.context.mailbox.displayNewMessageForm to create draft
-          await new Promise<void>((resolve, reject) => {
-            const officeMailbox = Office.context.mailbox as any;
+          console.log(`Creating message for ${toEmail}...`);
+          
+          // Use displayNewMessageForm which is supported in Outlook
+          const officeMailbox = (Office.context.mailbox as any);
+          
+          if (officeMailbox.displayNewMessageForm) {
             officeMailbox.displayNewMessageForm({
               toRecipients: [toEmail],
               subject: subject,
               htmlBody: body
             });
+            draftCount++;
+            console.log(`Opened message form ${draftCount} for ${toEmail}`);
             
-            // Give time for the form to open
-            setTimeout(() => {
-              draftCount++;
-              resolve();
-            }, 500);
-          });
+            // Add delay between opening windows to prevent issues
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          } else {
+            setError('displayNewMessageForm API not available in this Outlook version');
+            break;
+          }
           
         } catch (err) {
           console.error(`Error creating draft for ${toEmail}:`, err);
@@ -133,12 +138,13 @@ export const SendPane: React.FC<SendPaneProps> = ({
         }
 
         setProgress(Math.floor(((i + 1) / recipients.length) * 100));
-        setStatus(`Processing ${i + 1} of ${recipients.length} for ${toEmail}`);
+        setStatus(`Processing ${i + 1} of ${recipients.length} - ${toEmail}`);
       }
 
       setStatus(`✓ Opened ${draftCount} new message forms!`);
       onSendComplete();
     } catch (err) {
+      console.error('Error in createDrafts:', err);
       setError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSending(false);
