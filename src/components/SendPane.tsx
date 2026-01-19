@@ -172,12 +172,12 @@ export const SendPane: React.FC<SendPaneProps> = ({
       const errors: string[] = [];
       let ewsFailedOnce = false;
 
-      // Try Graph API first, then EWS, then displayNewMessageForm
-      let useGraph = !!graphToken;
-      let useEws = !useGraph && hasEws;
+      // Force displayNewMessageForm only - skip Graph and EWS for testing
+      let useGraph = false; // !!graphToken;
+      let useEws = false; // !useGraph && hasEws;
       
       const methodName = useGraph ? 'Microsoft Graph API' : (useEws ? 'EWS' : 'displayNewMessageForm');
-      console.log(`Using method: ${methodName}`);
+      console.log(`Using method: ${methodName}`, { hasDisplayForm });
       setStatus(`Creating drafts using ${methodName}...`);
 
       for (let i = 0; i < recipients.length; i++) {
