@@ -78,10 +78,10 @@ export const App: React.FC = () => {
         if (toAddresses) setToTemplate(toAddresses);
       }, 0);
       
-      // Get body - this requires a callback
+      // Get body - request as plain text to avoid CSP issues
       try {
         if (item.body && typeof item.body.getAsync === 'function') {
-          item.body.getAsync('html', (result: any) => {
+          item.body.getAsync('text', (result: any) => {
             console.log('Body getAsync result status:', result?.status);
             if (result && result.status === 'succeeded' && result.value) {
               console.log('Body loaded successfully, length:', result.value.length);
