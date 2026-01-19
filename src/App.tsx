@@ -37,9 +37,14 @@ export const App: React.FC = () => {
 
   const loadMessageFromOutlook = useCallback(() => {
     if (!isMountedRef.current) return;
-    
-    setIsLoadingMessage(true);
-    setMessageError('');
+
+    // Start loading state on the next tick to avoid React rendering conflicts
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        setIsLoadingMessage(true);
+        setMessageError('');
+      }
+    }, 0);
     
     try {
       const officeObj = (window as any).Office;
@@ -50,64 +55,60 @@ export const App: React.FC = () => {
       const item = officeObj.context.mailbox.item;
       console.log('Loading message from Outlook item...');
       
-      // Get subject synchronously
+      // Collect sync data
       const subject = item.subject || '';
-      console.log('Subject:', subject);
-      
-      // Get To field synchronously
       let toAddresses = '';
       if (item.to && Array.isArray(item.to) && item.to.length > 0) {
         toAddresses = item.to.map((r: any) => r.emailAddress).join(', ');
-        console.log('To addresses:', toAddresses);
       }
-      
-      // Update state once with sync data
-      if (isMountedRef.current) {
+
+      // Apply sync updates on next tick
+      setTimeout(() => {
+        if (!isMountedRef.current) return;
         setMessageSubject(subject);
         if (toAddresses) setToTemplate(toAddresses);
-      }
+      }, 0);
       
       // Get body asynchronously
       if (item.body && typeof item.body.getAsync === 'function') {
         item.body.getAsync('text', (result: any) => {
           if (!isMountedRef.current) return;
-          
           try {
             if (result?.status === 'succeeded' && result.value) {
-              console.log('Body loaded, length:', result.value.length);
-              if (isMountedRef.current) {
-                setMessageBody(result.value);
-              }
+              const value = result.value;
+              setTimeout(() => {
+                if (isMountedRef.current) setMessageBody(value);
+              }, 0);
             } else if (result?.status === 'failed') {
-              console.error('Failed to get body:', result.error);
-              if (isMountedRef.current) {
-                setMessageError(`Failed to load body: ${result.error?.message || 'Unknown'}`);
-              }
+              const msg = result.error?.message || 'Unknown';
+              setTimeout(() => {
+                if (isMountedRef.current) setMessageError(`Failed to load body: ${msg}`);
+              }, 0);
             }
           } catch (e) {
-            console.error('Error in body callback:', e);
-            if (isMountedRef.current) {
-              setMessageError(`Error processing body: ${e instanceof Error ? e.message : 'Unknown'}`);
-            }
+            const msg = e instanceof Error ? e.message : 'Unknown';
+            setTimeout(() => {
+              if (isMountedRef.current) setMessageError(`Error processing body: ${msg}`);
+            }, 0);
           } finally {
-            if (isMountedRef.current) {
-              setIsLoadingMessage(false);
-            }
+            setTimeout(() => {
+              if (isMountedRef.current) setIsLoadingMessage(false);
+            }, 0);
           }
         });
       } else {
-        console.warn('Body getAsync not available');
-        if (isMountedRef.current) {
-          setIsLoadingMessage(false);
-        }
+        setTimeout(() => {
+          if (isMountedRef.current) setIsLoadingMessage(false);
+        }, 0);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('Error loading message:', err);
-      if (isMountedRef.current) {
-        setMessageError(`Error: ${msg}`);
-        setIsLoadingMessage(false);
-      }
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          setMessageError(`Error: ${msg}`);
+          setIsLoadingMessage(false);
+        }
+      }, 0);
     }
   }, []);
 
