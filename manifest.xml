@@ -9,7 +9,7 @@
     "Document": {}
   },
   "defaultSettings": {
-    "sourceLocation": "https://localhost:3000/taskpane.html"
+    "sourceLocation": "https://outlook-mail-merge.vercel.app/taskpane.html"
   },
   "permissions": [
     "readwrite"
