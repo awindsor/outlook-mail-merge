@@ -2,6 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { suppressTrustedTypeWarnings } from './lib/htmlSafetyUtils';
+
+// Suppress Outlook CSP TrustedType warnings
+suppressTrustedTypeWarnings();
 
 // Office Initialize with fallback
 const initializeApp = () => {
