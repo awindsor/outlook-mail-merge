@@ -121,9 +121,12 @@ export const SendPane: React.FC<SendPaneProps> = ({
             officeMailbox.getCallbackTokenAsync({ isRest: true }, (result: any) => {
               if (result.status === 'succeeded') {
                 const token = result.value;
+                const restUrl = officeMailbox.restUrl || 'https://outlook.office.com/api/v2.0';
+                
+                console.log('REST URL:', restUrl);
+                console.log('Creating draft with:', { to: toEmail, subject, bodyLength: body.length });
                 
                 // Create draft using Outlook REST API
-                const restUrl = officeMailbox.restUrl || 'https://outlook.office.com/api/v2.0';
                 const messagePayload = {
                   Subject: subject,
                   Body: {
@@ -148,12 +151,16 @@ export const SendPane: React.FC<SendPaneProps> = ({
                   body: JSON.stringify(messagePayload)
                 })
                   .then(response => {
+                    console.log('Response status:', response.status);
                     if (response.ok) {
-                      draftCount++;
-                      console.log(`Created draft ${draftCount} for ${toEmail}`);
-                      resolve();
+                      return response.json().then(data => {
+                        draftCount++;
+                        console.log(`Created draft ${draftCount} for ${toEmail}`, data);
+                        resolve();
+                      });
                     } else {
                       return response.text().then(text => {
+                        console.error('API error response:', response.status, text);
                         throw new Error(`API error: ${response.status} - ${text}`);
                       });
                     }
@@ -165,7 +172,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
                     resolve(); // Continue with next recipient
                   });
               } else {
-                reject(new Error('Failed to get access token: ' + result.error?.message));
+                const errorMsg = 'Failed to get access token: ' + (result.error?.message || 'Unknown error');
+                console.error(errorMsg, result);
+                errors.push(`${toEmail}: ${errorMsg}`);
+                resolve(); // Continue with next recipient
               }
             });
           });
