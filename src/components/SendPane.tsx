@@ -114,70 +114,55 @@ export const SendPane: React.FC<SendPaneProps> = ({
         try {
           console.log(`Creating draft for ${toEmail}...`);
           
-          // Get access token for REST API
+          // Use EWS to create draft message
           const officeMailbox = Office.context.mailbox as any;
           
-          await new Promise<void>((resolve, reject) => {
-            officeMailbox.getCallbackTokenAsync({ isRest: true }, (result: any) => {
-              if (result.status === 'succeeded') {
-                const token = result.value;
-                const restUrl = officeMailbox.restUrl || 'https://outlook.office.com/api/v2.0';
-                
-                console.log('REST URL:', restUrl);
-                console.log('Creating draft with:', { to: toEmail, subject, bodyLength: body.length });
-                
-                // Create draft using Outlook REST API
-                const messagePayload = {
-                  Subject: subject,
-                  Body: {
-                    ContentType: 'Text',
-                    Content: body
-                  },
-                  ToRecipients: [
-                    {
-                      EmailAddress: {
-                        Address: toEmail
-                      }
-                    }
-                  ]
-                };
+          // Create EWS request to create a draft
+          const ewsRequest = `<?xml version="1.0" encoding="utf-8"?>
+            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                          xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+                          xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types"
+                          xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+              <soap:Header>
+                <t:RequestServerVersion Version="Exchange2013" />
+              </soap:Header>
+              <soap:Body>
+                <m:CreateItem MessageDisposition="SaveOnly">
+                  <m:Items>
+                    <t:Message>
+                      <t:Subject>${subject.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</t:Subject>
+                      <t:Body BodyType="Text">${body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</t:Body>
+                      <t:ToRecipients>
+                        <t:Mailbox>
+                          <t:EmailAddress>${toEmail}</t:EmailAddress>
+                        </t:Mailbox>
+                      </t:ToRecipients>
+                    </t:Message>
+                  </m:Items>
+                </m:CreateItem>
+              </soap:Body>
+            </soap:Envelope>`;
 
-                fetch(`${restUrl}/me/messages`, {
-                  method: 'POST',
-                  headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(messagePayload)
-                })
-                  .then(response => {
-                    console.log('Response status:', response.status);
-                    if (response.ok) {
-                      return response.json().then(data => {
-                        draftCount++;
-                        console.log(`Created draft ${draftCount} for ${toEmail}`, data);
-                        resolve();
-                      });
-                    } else {
-                      return response.text().then(text => {
-                        console.error('API error response:', response.status, text);
-                        throw new Error(`API error: ${response.status} - ${text}`);
-                      });
-                    }
-                  })
-                  .catch(err => {
-                    console.error(`Error creating draft for ${toEmail}:`, err);
-                    const errorMsg = err instanceof Error ? err.message : String(err);
-                    errors.push(`${toEmail}: ${errorMsg}`);
-                    resolve(); // Continue with next recipient
-                  });
-              } else {
-                const errorMsg = 'Failed to get access token: ' + (result.error?.message || 'Unknown error');
-                console.error(errorMsg, result);
-                errors.push(`${toEmail}: ${errorMsg}`);
-                resolve(); // Continue with next recipient
-              }
-            });
+          await new Promise<void>((resolve, reject) => {
+            if (typeof officeMailbox.makeEwsRequestAsync === 'function') {
+              officeMailbox.makeEwsRequestAsync(ewsRequest, (result: any) => {
+                if (result.status === 'succeeded') {
+                  draftCount++;
+                  console.log(`Created draft ${draftCount} for ${toEmail}`);
+                  resolve();
+                } else {
+                  const errorMsg = result.error?.message || 'EWS request failed';
+                  console.error('EWS error:', errorMsg, result);
+                  errors.push(`${toEmail}: ${errorMsg}`);
+                  resolve(); // Continue with next recipient
+                }
+              });
+            } else {
+              const errorMsg = 'EWS API not available in this Outlook version';
+              console.error(errorMsg);
+              errors.push(`${toEmail}: ${errorMsg}`);
+              resolve();
+            }
           });
           
         } catch (err) {
