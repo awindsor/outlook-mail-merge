@@ -6,11 +6,17 @@ import '../styles/DataSourceSelector.css';
 interface DataSourceSelectorProps {
   onDataLoaded: (recipients: any[]) => void;
   onSourceChange: (source: 'csv' | 'xlsx' | 'manual' | null) => void;
+  toTemplate: string;
+  onToTemplateChange: (template: string) => void;
+  availableFields: string[];
 }
 
 export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
   onDataLoaded,
-  onSourceChange
+  onSourceChange,
+  toTemplate,
+  onToTemplateChange,
+  availableFields
 }) => {
   const [sourceType, setSourceType] = useState<'csv' | 'xlsx' | 'manual' | null>(null);
   const [manualData, setManualData] = useState<string>('');
@@ -183,20 +189,53 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
       {loadedData.length > 0 && (
         <div className="data-preview">
           <h3>Loaded Recipients ({loadedData.length})</h3>
+          
+          <div className="email-field-selector">
+            <label htmlFor="to-template">
+              <strong>Email "To" Field Template:</strong>
+            </label>
+            <input
+              id="to-template"
+              type="text"
+              placeholder="e.g., {{Name}} <{{Email}}> or just {{Email}}"
+              value={toTemplate}
+              onChange={(e) => onToTemplateChange(e.target.value)}
+              className="to-template-input"
+            />
+            <p className="helper-text">Use variables with double curly braces (e.g., {{Name}}, {{Email}}). Examples: "{{Email}}" or "{{FirstName}} {{LastName}} <{{Email}}>"</p>
+            
+            <div className="quick-variables">
+              <span className="quick-label">Quick insert:</span>
+              {availableFields.map((field) => (
+                <button
+                  key={field}
+                  className="quick-var-btn"
+                  onClick={() => onToTemplateChange(toTemplate + `{{${field}}}`)}
+                >
+                  {{`{${field}}}`}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="table-container">
             <table className="recipients-table">
               <thead>
                 <tr>
                   {Object.keys(loadedData[0]).map((key) => (
-                    <th key={key}>{key}</th>
+                    <th key={key}>
+                      {key}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loadedData.slice(0, 5).map((row, idx) => (
                   <tr key={idx}>
-                    {Object.values(row).map((value: any, cidx) => (
-                      <td key={cidx}>{value}</td>
+                    {Object.entries(row).map(([key, value]: [string, any], cidx) => (
+                      <td kevalues(row).map((value: any, cidx) => (
+                      <td key={cidx
+                      </td>
                     ))}
                   </tr>
                 ))}

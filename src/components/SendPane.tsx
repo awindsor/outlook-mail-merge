@@ -8,12 +8,14 @@ interface SendPaneProps {
     body: string;
   };
   recipients: any[];
+  toTemplate: string;
   onSendComplete: () => void;
 }
 
 export const SendPane: React.FC<SendPaneProps> = ({
   template,
   recipients,
+  toTemplate,
   onSendComplete
 }) => {
   const [isSending, setIsSending] = useState(false);
@@ -46,15 +48,12 @@ export const SendPane: React.FC<SendPaneProps> = ({
     setProgress(0);
 
     try {
-      const context = await new Promise((resolve) => {
-        if (typeof Office !== 'undefined') {
-          Office.onReady(() => {
-            resolve(Office.context);
-          });
-        } else {
-          resolve(null);
-        }
-      });
+      // Check if Office.js is available
+      if (typeof Office === 'undefined') {
+        setError('Office.js not available. This add-in must run in Outlook.');
+        setIsSending(false);
+        return;
+      }
 
       let draftCount = 0;
 
@@ -62,37 +61,39 @@ export const SendPane: React.FC<SendPaneProps> = ({
         const recipient = recipients[i];
         const subject = engine.render(template.subject, recipient);
         const body = engine.render(template.body, recipient);
-        const toEmail = recipient.Email || '';
+        const toEmail = engine.render(toTemplate, recipient);
 
         if (!toEmail) {
-          console.warn(`Recipient ${i + 1} has no email address`);
+          console.warn(`Recipient ${i + 1} has no email address from template "${toTemplate}"`);
           continue;
         }
 
-        // Create draft message via Office API
-        if (context && typeof Office !== 'undefined') {
-          try {
-            // This would be the actual Office API call
-            // For now, we'll simulate it
-            console.log(`Creating draft ${i + 1}:`, {
-              to: toEmail,
-              subject,
-              body
+        try {
+          // Use Office.context.mailbox.displayNewMessageForm to create draft
+          await new Promise<void>((resolve, reject) => {
+            Office.context.mailbox.displayNewMessageForm({
+              toRecipients: [toEmail],
+              subject: subject,
+              htmlBody: body.replace(/\n/g, '<br>')
             });
-            draftCount++;
-          } catch (err) {
-            console.error(`Error creating draft for ${toEmail}:`, err);
-          }
+            
+            // Give time for the form to open
+            setTimeout(() => {
+              draftCount++;
+              resolve();
+            }, 500);
+          });
+          
+        } catch (err) {
+          console.error(`Error creating draft for ${toEmail}:`, err);
+          setError(`Error creating draft for ${toEmail}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
 
         setProgress(Math.floor(((i + 1) / recipients.length) * 100));
-        setStatus(`Created draft ${i + 1} of ${recipients.length} for ${toEmail}`);
-
-        // Small delay to show progress
-        await new Promise(resolve => setTimeout(resolve, 100));
+        setStatus(`Processing ${i + 1} of ${recipients.length} for ${toEmail}`);
       }
 
-      setStatus(`✓ Successfully created ${draftCount} email drafts!`);
+      setStatus(`✓ Opened ${draftCount} new message forms!`);
       onSendComplete();
     } catch (err) {
       setError(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -159,11 +160,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
       <div className="send-tips">
         <h4>Important:</h4>
         <ul>
-          <li>This creates email drafts - you can review before sending</li>
-          <li>Drafts are created in your Outlook Drafts folder</li>
-          <li>Each recipient gets a personalized copy</li>
-          <li>Review before sending to catch any issues</li>
-          <li>You can batch send or review individually</li>
+          <li>This opens a new message form for each recipient</li>
+          <li>Each message will be pre-filled with personalized content</li>
+          <li>You can review and edit before sending</li>
+          <li>Save as draft or send immediately</li>
         </ul>
       </div>
 
@@ -171,10 +171,9 @@ export const SendPane: React.FC<SendPaneProps> = ({
         <h4>Workflow:</h4>
         <ol>
           <li>Click "Create Email Drafts"</li>
-          <li>Personalized drafts appear in Outlook Drafts</li>
-          <li>Review and edit if needed</li>
-          <li>Send manually or use "Send Later" features</li>
-          <li>Deleted drafts won't be re-created</li>
+          <li>New message windows will open for each recipient</li>
+          <li>Review the personalized content</li>
+          <li>Save as draft or click Send for each message</li>
         </ol>
       </div>
     </div>

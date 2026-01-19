@@ -8,11 +8,13 @@ interface PreviewPaneProps {
     body: string;
   };
   recipients: any[];
+  toTemplate: string;
 }
 
 export const PreviewPane: React.FC<PreviewPaneProps> = ({
   template,
-  recipients
+  recipients,
+  toTemplate
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const engine = new TemplateEngine();
@@ -74,7 +76,7 @@ export const PreviewPane: React.FC<PreviewPaneProps> = ({
       <div className="email-preview">
         <div className="preview-field">
           <label>To:</label>
-          <div className="preview-value">{currentRecipient.Email || 'N/A'}</div>
+          <div className="preview-value">{engine.render(toTemplate, currentRecipient)}</div>
         </div>
 
         <div className="preview-field">

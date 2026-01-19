@@ -9,38 +9,51 @@ interface Template {
 interface TemplateEditorProps {
   template: Template;
   onTemplateChange: (template: Template) => void;
+  availableFields: string[];
 }
-
-const COMMON_VARIABLES = [
-  '{{FirstName}}',
-  '{{LastName}}',
-  '{{Email}}',
-  '{{Company}}',
-  '{{Title}}'
-];
 
 export const TemplateEditor: React.FC<TemplateEditorProps> = ({
   template,
-  onTemplateChange
+  onTemplateChange,
+  availableFields
 }) => {
-  const [showVariables, setShowVariables] = useState(false);
+  const [showVariables, setShowVariables] = useState(true);
 
   const insertVariable = (variable: string, field: 'subject' | 'body') => {
+    const formattedVar = variable.startsWith('{{') ? variable : `{{${variable}}}`;
     if (field === 'subject') {
       onTemplateChange({
         ...template,
-        subject: template.subject + variable
+        subject: template.subject + formattedVar
       });
     } else {
       onTemplateChange({
         ...template,
-        body: template.body + variable
+        body: template.body + formattedVar
       });
     }
   };
 
   return (
     <div className="template-editor">
+      {availableFields.length > 0 && (
+        <div className="variables-reference">
+          <h3>Available Variables from Your Data</h3>
+          <p className="variable-hint">Click a variable to insert it into your template:</p>
+          <div className="variable-grid">
+            {availableFields.map((field) => (
+              <button
+                key={field}
+                className="variable-chip"
+                onClick={() => insertVariable(field, 'body')}
+              >
+                {`{{${field}}}`}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="template-section">
         <label htmlFor="subject">Subject Line</label>
         <input
@@ -51,12 +64,6 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
           onChange={(e) => onTemplateChange({ ...template, subject: e.target.value })}
           className="template-input"
         />
-        <button
-          className="variable-button"
-          onClick={() => insertVariable(' {{FirstName}}', 'subject')}
-        >
-          + Variable
-        </button>
       </div>
 
       <div className="template-section">
@@ -69,20 +76,6 @@ export const TemplateEditor: React.FC<TemplateEditorProps> = ({
           className="template-textarea"
           rows={10}
         />
-        <div className="template-actions">
-          <button
-            className="variable-button"
-            onClick={() => insertVariable(' {{FirstName}}', 'body')}
-          >
-            + Variable
-          </button>
-          <button
-            className="toggle-variables"
-            onClick={() => setShowVariables(!showVariables)}
-          >
-            {showVariables ? 'Hide' : 'Show'} Variables
-          </button>
-        </div>
       </div>
 
       {showVariables && (

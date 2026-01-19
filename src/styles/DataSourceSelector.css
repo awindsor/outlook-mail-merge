@@ -2,6 +2,67 @@
   max-width: 900px;
 }
 
+.email-field-selector {
+  margin: 20px 0;
+  padding: 16px;
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+}
+
+.email-field-selector label {
+  display: block;
+  margin-bottom: 8px;
+  color: #856404;
+}
+
+.to-template-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  font-family: monospace;
+}
+
+.quick-variables {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-label {
+  font-size: 12px;
+  color: #856404;
+  font-weight: 600;
+}
+
+.quick-var-btn {
+  padding: 4px 8px;
+  background: white;
+  border: 1px solid #ffc107;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: monospace;
+  color: #856404;
+  transition: all 0.2s ease;
+}
+
+.quick-var-btn:hover {
+  background: #ffc107;
+  color: white;
+}
+
+.helper-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #856404;
+}
+
 .source-type-selector {
   margin-bottom: 24px;
 }
