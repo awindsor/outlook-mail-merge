@@ -11,6 +11,7 @@ interface SendPaneProps {
   toTemplate: string;
   onLoadFromOutlook: () => void;
   isLoadingMessage: boolean;
+  messageError?: string;
   onSendComplete: () => void;
 }
 
@@ -20,6 +21,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
   toTemplate,
   onLoadFromOutlook,
   isLoadingMessage,
+  messageError,
   onSendComplete
 }) => {
   const [isSending, setIsSending] = useState(false);
@@ -151,6 +153,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
         </div>
       </div>
 
+      {messageError && <div className="error-banner">{messageError}</div>}
       {error && <div className="error-banner">{error}</div>}
 
       <div className="send-controls">

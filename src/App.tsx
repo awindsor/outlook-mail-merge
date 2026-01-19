@@ -13,6 +13,7 @@ export const App: React.FC = () => {
   const [messageSubject, setMessageSubject] = useState<string>('');
   const [messageBody, setMessageBody] = useState<string>('');
   const [isLoadingMessage, setIsLoadingMessage] = useState(false);
+  const [messageError, setMessageError] = useState<string>('');
 
   const handleDataLoaded = (data: any[]) => {
     setRecipients(data);
@@ -28,32 +29,76 @@ export const App: React.FC = () => {
 
   const loadMessageFromOutlook = async () => {
     setIsLoadingMessage(true);
+    setMessageError('');
     try {
       const officeObj = (window as any).Office;
-      if (officeObj && officeObj.context && officeObj.context.mailbox && officeObj.context.mailbox.item) {
-        const item = officeObj.context.mailbox.item;
-        
-        // Get subject
+      if (!officeObj) {
+        throw new Error('Office.js not available');
+      }
+      
+      const context = officeObj.context;
+      if (!context) {
+        throw new Error('Office context not available');
+      }
+
+      const mailbox = context.mailbox;
+      if (!mailbox) {
+        throw new Error('Mailbox not available');
+      }
+
+      const item = mailbox.item;
+      if (!item) {
+        throw new Error('No item in mailbox - are you in a message compose window?');
+      }
+
+      console.log('Loading message from Outlook item...');
+      
+      // Get subject
+      try {
         const subject = item.subject || '';
+        console.log('Subject:', subject);
         setMessageSubject(subject);
-        
-        // Get To field
+      } catch (e) {
+        console.error('Error getting subject:', e);
+      }
+      
+      // Get To field
+      try {
         if (item.to && Array.isArray(item.to) && item.to.length > 0) {
           const toAddresses = item.to.map((recipient: any) => recipient.emailAddress).join(', ');
+          console.log('To addresses:', toAddresses);
           setToTemplate(toAddresses);
+        } else {
+          console.warn('No To field found');
         }
-        
-        // Get body
+      } catch (e) {
+        console.error('Error getting To field:', e);
+      }
+      
+      // Get body - this requires a callback
+      try {
         if (item.body && typeof item.body.getAsync === 'function') {
           item.body.getAsync('html', (result: any) => {
-            if (result && result.value) {
+            if (result.status === 'succeeded' && result.value) {
+              console.log('Body loaded successfully');
               setMessageBody(result.value);
+            } else if (result.status === 'failed') {
+              console.error('Failed to get body:', result.error);
+              setMessageError(`Failed to load body: ${result.error?.message || 'Unknown error'}`);
             }
           });
+        } else {
+          console.warn('Body getAsync not available');
         }
+      } catch (e) {
+        console.error('Error setting up body getAsync:', e);
       }
+      
+      console.log('Message load initiated');
     } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
       console.error('Error loading message from Outlook:', err);
+      setMessageError(`Error: ${errorMsg}`);
     } finally {
       setIsLoadingMessage(false);
     }
@@ -102,6 +147,7 @@ export const App: React.FC = () => {
             toTemplate={toTemplate}
             onLoadFromOutlook={loadMessageFromOutlook}
             isLoadingMessage={isLoadingMessage}
+            messageError={messageError}
             onSendComplete={() => alert('Drafts created successfully!')}
           />
         )}
