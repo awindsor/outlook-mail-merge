@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
-import { TemplateEngine } from '../lib/TemplateEngine';
 import '../styles/SendPane.css';
+
+// Inline template rendering to avoid any dependencies that might cause CSP issues
+const renderTemplate = (template: string, data: any): string => {
+  let result = template;
+  Object.keys(data).forEach(key => {
+    const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
+    result = result.replace(regex, String(data[key] || ''));
+  });
+  return result;
+};
 
 interface SendPaneProps {
   template: {
@@ -28,7 +37,6 @@ export const SendPane: React.FC<SendPaneProps> = ({
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<string>('');
-  const engine = new TemplateEngine();
 
   React.useEffect(() => {
     console.log('SendPane rendered with:', {
@@ -86,9 +94,9 @@ export const SendPane: React.FC<SendPaneProps> = ({
 
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i];
-        const subject = engine.render(template.subject, recipient);
-        const body = engine.render(template.body, recipient);
-        const toEmail = engine.render(toTemplate, recipient);
+        const subject = renderTemplate(template.subject, recipient);
+        const body = renderTemplate(template.body, recipient);
+        const toEmail = renderTemplate(toTemplate, recipient);
 
         if (!toEmail) {
           console.warn(`Recipient ${i + 1} has no email address from template "${toTemplate}"`);
