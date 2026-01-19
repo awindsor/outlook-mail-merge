@@ -1,7 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { initTrustedTypesPolyfill } from './lib/trustedTypesPolyfill';
 import App from './App';
 import './index.css';
+
+// Initialize TrustedTypes polyfill FIRST to prevent errors from other libraries
+initTrustedTypesPolyfill();
 
 // Office Initialize with fallback
 const initializeApp = () => {
