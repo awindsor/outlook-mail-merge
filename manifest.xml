@@ -1,17 +1,55 @@
-{
-  "id": "12345678-1234-1234-1234-123456789012",
-  "version": "1.0.0.0",
-  "providerName": "Mail Merge for Outlook",
-  "defaultLocale": "en-US",
-  "displayName": "Mail Merge",
-  "description": "Create and send personalized bulk emails from templates",
-  "hosts": {
-    "Document": {}
-  },
-  "defaultSettings": {
-    "sourceLocation": "https://outlook-mail-merge.vercel.app/taskpane.html"
-  },
-  "permissions": [
-    "readwrite"
-  ]
-}
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" 
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+           xsi:type="MailApp">
+  <Id>12345678-1234-1234-1234-123456789012</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Mail Merge for Outlook</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Mail Merge"/>
+  <Description DefaultValue="Create and send personalized bulk emails from templates"/>
+  <Hosts>
+    <Host xsi:type="MailHost">
+      <DesktopFormFactor>
+        <FunctionFile resid="functionFile"/>
+        <ExtensionPoint xsi:type="MessageComposeCommandSurface">
+          <OfficeTab id="TabDefault">
+            <Group id="msgComposeGroup">
+              <Label resid="groupLabel"/>
+              <Control xsi:type="Button" id="msgComposeOpenPaneButton">
+                <Label resid="paneButtonLabel"/>
+                <Supertip>
+                  <Title resid="paneButtonTooltipTitle"/>
+                  <Description resid="paneButtonTooltipDescription"/>
+                </Supertip>
+                <Action xsi:type="ShowTaskpane">
+                  <TaskpaneId>taskpaneId</TaskpaneId>
+                  <SourceLocation resid="Taskpane.Url"/>
+                </Action>
+              </Control>
+            </Group>
+          </OfficeTab>
+        </ExtensionPoint>
+      </DesktopFormFactor>
+    </Host>
+  </Hosts>
+  <Resources>
+    <bt:Images>
+      <bt:Image id="icon16" DefaultValue="https://outlook-mail-merge.vercel.app/icon16.png"/>
+      <bt:Image id="icon32" DefaultValue="https://outlook-mail-merge.vercel.app/icon32.png"/>
+      <bt:Image id="icon80" DefaultValue="https://outlook-mail-merge.vercel.app/icon80.png"/>
+    </bt:Images>
+    <bt:Urls>
+      <bt:Url id="functionFile" DefaultValue="https://outlook-mail-merge.vercel.app/functions.html"/>
+      <bt:Url id="Taskpane.Url" DefaultValue="https://outlook-mail-merge.vercel.app/taskpane.html"/>
+    </bt:Urls>
+    <bt:ShortStrings>
+      <bt:String id="groupLabel" DefaultValue="Mail Merge"/>
+      <bt:String id="paneButtonLabel" DefaultValue="Mail Merge"/>
+      <bt:String id="paneButtonTooltipTitle" DefaultValue="Mail Merge"/>
+    </bt:ShortStrings>
+    <bt:LongStrings>
+      <bt:String id="paneButtonTooltipDescription" DefaultValue="Create and send personalized bulk emails from templates with variable substitution"/>
+    </bt:LongStrings>
+  </Resources>
+</OfficeApp>
