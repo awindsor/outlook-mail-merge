@@ -21,7 +21,6 @@ export const App: React.FC = () => {
     if (data.length > 0) {
       const fields = Object.keys(data[0]);
       setAvailableFields(fields);
-      // Set default "To" template with email field
       const emailFieldName = fields.find(f => 
         f.toLowerCase().includes('email') || f.toLowerCase() === 'to'
       ) || fields[0];
@@ -33,15 +32,37 @@ export const App: React.FC = () => {
     setIsLoadingMessage(true);
     try {
       if (typeof Office !== 'undefined' && Office.context?.mailbox?.item) {
-        const item = Office.context.mailbox.item;
+        const item = Office.context.mailbox.item as any;
         const subject = item.subject || '';
-        const body = item.body?.getAsync?.(Office.CoercionType.Html, (result: any) => {
-          if (result.status === Office.AsyncResultStatus.Succeeded) {
-            setMessageBody(result.value);
-          }
-        });
         setMessageSubject(subject);
-      }Load Recipients
+        if (item.body && item.body.getAsync) {
+          item.body.getAsync('html', (result: any) => {
+            if (result.status === 'succeeded') {
+              setMessageBody(result.value);
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error loading message from Outlook:', err);
+    } finally {
+      setIsLoadingMessage(false);
+    }
+  };
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1>Mail Merge for Outlook</h1>
+        <p>Create personalized bulk emails from templates</p>
+      </header>
+
+      <div className="tabs">
+        <button
+          className={`tab-button ${activeTab === 'data' ? 'active' : ''}`}
+          onClick={() => setActiveTab('data')}
+        >
+          1. Load Recipients
         </button>
         <button
           className={`tab-button ${activeTab === 'compose' ? 'active' : ''}`}
@@ -55,27 +76,7 @@ export const App: React.FC = () => {
           onClick={() => setActiveTab('send')}
           disabled={recipients.length === 0 || !messageSubject || !messageBody}
         >
-          3. Merge &tton>
-        <button
-          className={`tab-button ${activeTab === 'template' ? 'active' : ''}`}
-          onClick={() => setActiveTab('template')}
-          disabled={recipients.length === 0}
-        >
-          2. Template
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'preview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('preview')}
-          disabled={recipients.length === 0}
-        >
-          3. Preview
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'send' ? 'active' : ''}`}
-          onClick={() => setActiveTab('send')}
-          disabled={recipients.length === 0}
-        >
-          4. Send
+          3. Merge & Send
         </button>
       </div>
 
@@ -86,13 +87,6 @@ export const App: React.FC = () => {
             onSourceChange={setDataSource}
             toTemplate={toTemplate}
             onToTemplateChange={setToTemplate}
-            availableFields={availableFields}
-          />
-        )}
-        {activeTab === 'template' && (
-          <TemplateEditor
-            template={template}
-            onTemplateChange={setTemplate}
             availableFields={availableFields}
           />
         )}
@@ -114,7 +108,14 @@ export const App: React.FC = () => {
             template={{
               subject: messageSubject,
               body: messageBody
-            }
+            }}
+            recipients={recipients}
+            toTemplate={toTemplate}
+            onSendComplete={() => alert('Drafts created successfully!')}
+          />
+        )}
+      </div>
+    </div>
   );
 };
 

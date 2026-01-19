@@ -212,7 +212,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
                   className="quick-var-btn"
                   onClick={() => onToTemplateChange(toTemplate + `{{${field}}}`)}
                 >
-                  {{`{${field}}}`}
+                  {`{{${field}}}`}
                 </button>
               ))}
             </div>
