@@ -102,7 +102,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
             officeMailbox.displayNewMessageForm({
               toRecipients: [toEmail],
               subject: subject,
-              htmlBody: body.replace(/\n/g, '<br>')
+              htmlBody: body
             });
             
             // Give time for the form to open

@@ -55,24 +55,16 @@ export const App: React.FC = () => {
 
       console.log('Loading message from Outlook item...');
       
-      // Collect all the data first before setting state
-      const data: any = {};
-      
       // Get subject
-      try {
-        const subject = item.subject || '';
-        console.log('Subject:', subject);
-        data.subject = subject;
-      } catch (e) {
-        console.error('Error getting subject:', e);
-      }
+      const subject = item.subject || '';
+      console.log('Subject:', subject);
       
       // Get To field
+      let toAddresses = '';
       try {
         if (item.to && Array.isArray(item.to) && item.to.length > 0) {
-          const toAddresses = item.to.map((recipient: any) => recipient.emailAddress).join(', ');
+          toAddresses = item.to.map((recipient: any) => recipient.emailAddress).join(', ');
           console.log('To addresses:', toAddresses);
-          data.to = toAddresses;
         } else {
           console.warn('No To field found');
         }
@@ -80,37 +72,47 @@ export const App: React.FC = () => {
         console.error('Error getting To field:', e);
       }
       
+      // Update state asynchronously to avoid React error
+      setTimeout(() => {
+        setMessageSubject(subject);
+        if (toAddresses) setToTemplate(toAddresses);
+      }, 0);
+      
       // Get body - this requires a callback
       try {
         if (item.body && typeof item.body.getAsync === 'function') {
           item.body.getAsync('html', (result: any) => {
-            console.log('Body getAsync result:', result);
+            console.log('Body getAsync result status:', result?.status);
             if (result && result.status === 'succeeded' && result.value) {
-              console.log('Body loaded successfully');
-              setMessageBody(result.value);
+              console.log('Body loaded successfully, length:', result.value.length);
+              setTimeout(() => {
+                setMessageBody(result.value);
+              }, 0);
             } else if (result && result.status === 'failed') {
               console.error('Failed to get body:', result.error);
-              setMessageError(`Failed to load body: ${result.error?.message || 'Unknown error'}`);
+              setTimeout(() => {
+                setMessageError(`Failed to load body: ${result.error?.message || 'Unknown error'}`);
+              }, 0);
             }
           });
         } else {
-          console.warn('Body getAsync not available');
+          console.warn('Body getAsync not available, item.body=', item.body);
         }
       } catch (e) {
         console.error('Error setting up body getAsync:', e);
       }
       
-      // Update state with collected data
-      if (data.subject) setMessageSubject(data.subject);
-      if (data.to) setToTemplate(data.to);
-      
-      console.log('Message load initiated with data:', data);
+      console.log('Message load initiated');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       console.error('Error loading message from Outlook:', err);
-      setMessageError(`Error: ${errorMsg}`);
+      setTimeout(() => {
+        setMessageError(`Error: ${errorMsg}`);
+      }, 0);
     } finally {
-      setIsLoadingMessage(false);
+      setTimeout(() => {
+        setIsLoadingMessage(false);
+      }, 0);
     }
   };
 
