@@ -160,7 +160,8 @@ export const SendPane: React.FC<SendPaneProps> = ({
                   })
                   .catch(err => {
                     console.error(`Error creating draft for ${toEmail}:`, err);
-                    errors.push(`${toEmail}: ${err.message}`);
+                    const errorMsg = err instanceof Error ? err.message : String(err);
+                    errors.push(`${toEmail}: ${errorMsg}`);
                     resolve(); // Continue with next recipient
                   });
               } else {
@@ -171,11 +172,12 @@ export const SendPane: React.FC<SendPaneProps> = ({
           
         } catch (err) {
           console.error(`Error creating draft for ${toEmail}:`, err);
-          errors.push(`${toEmail}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          const errorMsg = err instanceof Error ? err.message : String(err);
+          errors.push(`${toEmail}: ${errorMsg}`);
         }
 
         setProgress(Math.floor(((i + 1) / recipients.length) * 100));
-        setStatus(`Created ${draftCount} of ${i + 1} drafts...`);
+        setStatus(`Created ${draftCount} of ${recipients.length} drafts (processing ${i + 1}/${recipients.length})...`);
       }
 
       if (errors.length > 0) {
