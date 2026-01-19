@@ -137,17 +137,21 @@ export const SendPane: React.FC<SendPaneProps> = ({
 
       const officeMailbox = Office.context.mailbox as any;
       
-      // Check if we're in Outlook on the web (limited API support)
-      const isOutlookWeb = !officeMailbox.displayNewMessageForm;
+      // Check if we have EWS support (desktop) or display form (either)
+      const hasEws = typeof officeMailbox.makeEwsRequestAsync === 'function';
+      const hasDisplayForm = typeof officeMailbox.displayNewMessageForm === 'function';
       
-      if (isOutlookWeb) {
-        setError('Outlook on the web has limited API support. Please use Outlook Desktop for full functionality, or use the "Export Messages" button below to copy/paste messages manually.');
+      if (!hasEws && !hasDisplayForm) {
+        setError('This Outlook version has limited API support. Please use the "Export Messages" button below to copy/paste messages manually.');
         setIsSending(false);
         return;
       }
 
       let draftCount = 0;
       const errors: string[] = [];
+
+      // Use EWS if available (desktop), otherwise try displayNewMessageForm
+      const useEws = hasEws;
 
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i];
@@ -163,10 +167,48 @@ export const SendPane: React.FC<SendPaneProps> = ({
         try {
           console.log(`Creating message for ${toEmail}...`);
           
-          const officeMailbox = Office.context.mailbox as any;
-          
-          // Use displayNewMessageForm - works in Outlook on the web
-          if (officeMailbox.displayNewMessageForm) {
+          if (useEws) {
+            // Use EWS for desktop - creates drafts directly in Drafts folder
+            const ewsRequest = `<?xml version="1.0" encoding="utf-8"?>
+              <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                            xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
+                            xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types"
+                            xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+                <soap:Header>
+                  <t:RequestServerVersion Version="Exchange2013" />
+                </soap:Header>
+                <soap:Body>
+                  <m:CreateItem MessageDisposition="SaveOnly">
+                    <m:Items>
+                      <t:Message>
+                        <t:Subject>${subject.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</t:Subject>
+                        <t:Body BodyType="Text">${body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</t:Body>
+                        <t:ToRecipients>
+                          <t:Mailbox>
+                            <t:EmailAddress>${toEmail}</t:EmailAddress>
+                          </t:Mailbox>
+                        </t:ToRecipients>
+                      </t:Message>
+                    </m:Items>
+                  </m:CreateItem>
+                </soap:Body>
+              </soap:Envelope>`;
+
+            await new Promise<void>((resolve) => {
+              officeMailbox.makeEwsRequestAsync(ewsRequest, (result: any) => {
+                if (result.status === 'succeeded') {
+                  draftCount++;
+                  console.log(`Created draft ${draftCount} for ${toEmail}`);
+                } else {
+                  const errorMsg = result.error?.message || 'EWS request failed';
+                  console.error('EWS error:', errorMsg, result);
+                  errors.push(`${toEmail}: ${errorMsg}`);
+                }
+                resolve();
+              });
+            });
+          } else {
+            // Fallback to displayNewMessageForm (opens windows)
             officeMailbox.displayNewMessageForm({
               toRecipients: [toEmail],
               subject: subject,
@@ -178,10 +220,6 @@ export const SendPane: React.FC<SendPaneProps> = ({
             
             // Small delay between opening windows
             await new Promise(resolve => setTimeout(resolve, 500));
-          } else {
-            const errorMsg = 'displayNewMessageForm API not available';
-            console.error(errorMsg);
-            errors.push(`${toEmail}: ${errorMsg}`);
           }
           
         } catch (err) {
@@ -195,10 +233,13 @@ export const SendPane: React.FC<SendPaneProps> = ({
       }
 
       if (errors.length > 0) {
-        setError(`Opened ${draftCount} message forms with ${errors.length} errors. Check console for details.`);
+        setError(`${useEws ? 'Created' : 'Opened'} ${draftCount} ${useEws ? 'drafts' : 'message forms'} with ${errors.length} errors. Check console for details.`);
         console.error('Errors:', errors);
       } else {
-        setStatus(`✓ Opened ${draftCount} message forms! You can now save them as drafts or send them.`);
+        setStatus(useEws 
+          ? `✓ Successfully created ${draftCount} draft messages in your Drafts folder!`
+          : `✓ Opened ${draftCount} message forms! You can now save them as drafts or send them.`
+        );
       }
       onSendComplete();
     } catch (err) {
