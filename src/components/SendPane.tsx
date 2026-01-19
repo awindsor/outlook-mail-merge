@@ -149,9 +149,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
 
       let draftCount = 0;
       const errors: string[] = [];
+      let ewsFailedOnce = false;
 
-      // Use EWS if available (desktop), otherwise try displayNewMessageForm
-      const useEws = hasEws;
+      // Try EWS first if available (desktop), but fall back to displayNewMessageForm if it fails
+      let useEws = hasEws;
 
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i];
@@ -200,14 +201,23 @@ export const SendPane: React.FC<SendPaneProps> = ({
                   draftCount++;
                   console.log(`Created draft ${draftCount} for ${toEmail}`);
                 } else {
+                  // EWS failed - log details and switch to fallback
                   const errorMsg = result.error?.message || 'EWS request failed';
-                  console.error('EWS error:', errorMsg, result);
+                  console.error('EWS error:', errorMsg, 'Full result:', result);
+                  
+                  // On first EWS failure, switch to displayNewMessageForm for remaining messages
+                  if (!ewsFailedOnce && hasDisplayForm) {
+                    ewsFailedOnce = true;
+                    useEws = false;
+                    console.log('Switching to displayNewMessageForm fallback for remaining messages');
+                  }
+                  
                   errors.push(`${toEmail}: ${errorMsg}`);
                 }
                 resolve();
               });
             });
-          } else {
+          } else if (hasDisplayForm) {
             // Fallback to displayNewMessageForm (opens windows)
             officeMailbox.displayNewMessageForm({
               toRecipients: [toEmail],
@@ -220,6 +230,8 @@ export const SendPane: React.FC<SendPaneProps> = ({
             
             // Small delay between opening windows
             await new Promise(resolve => setTimeout(resolve, 500));
+          } else {
+            errors.push(`${toEmail}: No API method available to create message`);
           }
           
         } catch (err) {
@@ -235,7 +247,8 @@ export const SendPane: React.FC<SendPaneProps> = ({
       if (errors.length > 0) {
         const errorDetails = errors.slice(0, 3).join('\n'); // Show first 3 errors
         const moreErrors = errors.length > 3 ? `\n...and ${errors.length - 3} more errors` : '';
-        setError(`${useEws ? 'Created' : 'Opened'} ${draftCount} ${useEws ? 'drafts' : 'message forms'} with ${errors.length} errors:\n${errorDetails}${moreErrors}`);
+        const fallbackMsg = ewsFailedOnce && hasDisplayForm ? '\n\nNote: EWS failed, automatically switched to opening message windows.' : '';
+        setError(`${useEws ? 'Created' : 'Opened'} ${draftCount} ${useEws ? 'drafts' : 'message forms'} with ${errors.length} errors:\n${errorDetails}${moreErrors}${fallbackMsg}`);
         console.error('All errors:', errors);
       } else {
         setStatus(useEws 
