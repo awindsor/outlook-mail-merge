@@ -9,6 +9,8 @@ interface SendPaneProps {
   };
   recipients: any[];
   toTemplate: string;
+  onLoadFromOutlook: () => void;
+  isLoadingMessage: boolean;
   onSendComplete: () => void;
 }
 
@@ -16,6 +18,8 @@ export const SendPane: React.FC<SendPaneProps> = ({
   template,
   recipients,
   toTemplate,
+  onLoadFromOutlook,
+  isLoadingMessage,
   onSendComplete
 }) => {
   const [isSending, setIsSending] = useState(false);
@@ -71,7 +75,8 @@ export const SendPane: React.FC<SendPaneProps> = ({
         try {
           // Use Office.context.mailbox.displayNewMessageForm to create draft
           await new Promise<void>((resolve, reject) => {
-            Office.context.mailbox.displayNewMessageForm({
+            const officeMailbox = Office.context.mailbox as any;
+            officeMailbox.displayNewMessageForm({
               toRecipients: [toEmail],
               subject: subject,
               htmlBody: body.replace(/\n/g, '<br>')
@@ -102,15 +107,14 @@ export const SendPane: React.FC<SendPaneProps> = ({
     }
   };
 
-  if (recipients.length === 0 || !template.subject || !template.body) {
+  if (recipients.length === 0) {
     return (
       <div className="send-pane">
         <div className="incomplete-notice">
           <p>⚠ Complete all previous steps before sending:</p>
           <ul>
-            <li>Step 1: Create template (subject and body)</li>
-            <li>Step 2: Load recipients from data source</li>
-            <li>Step 3: Review email preview</li>
+            <li>Step 1: Load recipients from your data source (CSV, Excel, or manual entry)</li>
+            <li>Step 2: Load your message from Outlook and create drafts</li>
           </ul>
         </div>
       </div>
@@ -119,18 +123,31 @@ export const SendPane: React.FC<SendPaneProps> = ({
 
   return (
     <div className="send-pane">
-      <div className="send-summary">
-        <h3>Ready to Create Drafts</h3>
-        <div className="summary-info">
-          <p>
-            <strong>Recipients:</strong> {recipients.length} emails
-          </p>
-          <p>
-            <strong>Template Subject:</strong> {template.subject}
-          </p>
-          <p>
-            <strong>Body Preview:</strong> {template.body.substring(0, 60)}...
-          </p>
+      <div className="send-header">
+        <h2>Merge & Send</h2>
+        <p>Load your composed message from Outlook, then create personalized drafts for each recipient</p>
+        
+        <button 
+          className="load-button"
+          onClick={onLoadFromOutlook}
+          disabled={isLoadingMessage}
+        >
+          {isLoadingMessage ? 'Loading...' : 'Load Message from Outlook Draft'}
+        </button>
+      </div>
+
+      <div className="message-preview">
+        <div className="preview-section">
+          <h3>Subject</h3>
+          <p className="preview-text">{template.subject || '(No subject loaded)'}</p>
+        </div>
+        <div className="preview-section">
+          <h3>Body Preview</h3>
+          <p className="preview-text">{template.body ? template.body.substring(0, 100) + '...' : '(No body loaded)'}</p>
+        </div>
+        <div className="preview-section">
+          <h3>Recipients</h3>
+          <p className="preview-text">{recipients.length} recipients will receive this message</p>
         </div>
       </div>
 
@@ -140,9 +157,9 @@ export const SendPane: React.FC<SendPaneProps> = ({
         <button
           className="send-button"
           onClick={createDrafts}
-          disabled={isSending}
+          disabled={isSending || !template.subject || !template.body}
         >
-          {isSending ? 'Creating Drafts...' : 'Create Email Drafts'}
+          {isSending ? 'Creating Drafts...' : `Create ${recipients.length} Email Drafts`}
         </button>
       </div>
 

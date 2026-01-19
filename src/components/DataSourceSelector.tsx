@@ -33,6 +33,7 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
           setLoadedData(results.data as any[]);
           onDataLoaded(results.data as any[]);
           setFileName(file.name);
+          setSourceType('csv');
           setError('');
         } else {
           setError('CSV file is empty or invalid');
@@ -48,16 +49,16 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = e.target?.result;
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheet];
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
         
-        if (jsonData.length > 0) {
+        if (jsonData && jsonData.length > 0) {
           setLoadedData(jsonData);
           onDataLoaded(jsonData);
           setFileName(file.name);
+          setSourceType('xlsx');
           setError('');
         } else {
           setError('Excel file is empty or invalid');
@@ -69,173 +70,105 @@ export const DataSourceSelector: React.FC<DataSourceSelectorProps> = ({
     reader.readAsArrayBuffer(file);
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (sourceType === 'csv') {
-      handleCSVUpload(file);
-    } else if (sourceType === 'xlsx') {
-      handleXLSXUpload(file);
+  const handleManualEntry = () => {
+    try {
+      const parsed = JSON.parse(manualData);
+      const dataArray = Array.isArray(parsed) ? parsed : [parsed];
+      
+      if (dataArray.length > 0 && typeof dataArray[0] === 'object') {
+        setLoadedData(dataArray);
+        onDataLoaded(dataArray);
+        setSourceType('manual');
+        setError('');
+      } else {
+        setError('Invalid JSON format. Must be an object or array of objects.');
+      }
+    } catch (err) {
+      setError(`JSON Parse Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
-  const handleManualDataChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setManualData(e.target.value);
-  };
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const parseManualData = () => {
-    try {
-      const data = JSON.parse(`[${manualData}]`);
-      setLoadedData(data);
-      onDataLoaded(data);
-      setError('');
-    } catch (err) {
-      setError('Invalid JSON format');
+    const fileName = file.name.toLowerCase();
+    if (fileName.endsWith('.csv')) {
+      handleCSVUpload(file);
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      handleXLSXUpload(file);
+    } else {
+      setError('Unsupported file type. Please use CSV or Excel.');
     }
   };
 
   return (
     <div className="data-source-selector">
-      <div className="source-type-selector">
-        <h3>Select Data Source</h3>
-        <div className="source-buttons">
-          <button
-            className={`source-button ${sourceType === 'csv' ? 'active' : ''}`}
-            onClick={() => {
-              setSourceType('csv');
-              onSourceChange('csv');
-              setLoadedData([]);
-              setFileName('');
-              setError('');
-            }}
+      <div className="selector-header">
+        <h2>Load Recipients</h2>
+        <p>Upload your recipient data from CSV, Excel, or enter manually</p>
+      </div>
+
+      <div className="upload-options">
+        <div className="option-group">
+          <label htmlFor="file-upload" className="upload-label">
+            📁 Upload File (CSV or Excel)
+          </label>
+          <input
+            id="file-upload"
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleFileUpload}
+            className="file-input"
+          />
+          {fileName && <p className="file-name">✓ Loaded: {fileName}</p>}
+        </div>
+
+        <div className="divider">OR</div>
+
+        <div className="option-group">
+          <label htmlFor="manual-entry">
+            ✏️ Enter JSON Data Manually
+          </label>
+          <textarea
+            id="manual-entry"
+            placeholder={`[
+  { "FirstName": "John", "LastName": "Doe", "Email": "john@example.com" },
+  { "FirstName": "Jane", "LastName": "Smith", "Email": "jane@example.com" }
+]`}
+            value={manualData}
+            onChange={(e) => setManualData(e.target.value)}
+            className="manual-textarea"
+            rows={8}
+          />
+          <button 
+            onClick={handleManualEntry}
+            className="load-button"
           >
-            📄 CSV File
-          </button>
-          <button
-            className={`source-button ${sourceType === 'xlsx' ? 'active' : ''}`}
-            onClick={() => {
-              setSourceType('xlsx');
-              onSourceChange('xlsx');
-              setLoadedData([]);
-              setFileName('');
-              setError('');
-            }}
-          >
-            📊 Excel File
-          </button>
-          <button
-            className={`source-button ${sourceType === 'manual' ? 'active' : ''}`}
-            onClick={() => {
-              setSourceType('manual');
-              onSourceChange('manual');
-              setLoadedData([]);
-              setFileName('');
-              setError('');
-            }}
-          >
-            ✏️ Manual Entry
+            Load JSON Data
           </button>
         </div>
       </div>
 
-      {sourceType === 'csv' && (
-        <div className="upload-section">
-          <label htmlFor="csv-file">Upload CSV File</label>
-          <input
-            id="csv-file"
-            type="file"
-            accept=".csv"
-            onChange={handleFileInput}
-            className="file-input"
-          />
-          {fileName && <p className="file-name">Loaded: {fileName}</p>}
-        </div>
-      )}
-
-      {sourceType === 'xlsx' && (
-        <div className="upload-section">
-          <label htmlFor="xlsx-file">Upload Excel File</label>
-          <input
-            id="xlsx-file"
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={handleFileInput}
-            className="file-input"
-          />
-          {fileName && <p className="file-name">Loaded: {fileName}</p>}
-        </div>
-      )}
-
-      {sourceType === 'manual' && (
-        <div className="manual-section">
-          <label htmlFor="manual-data">Enter JSON Data (one record per line)</label>
-          <textarea
-            id="manual-data"
-            value={manualData}
-            onChange={handleManualDataChange}
-            placeholder='{"FirstName":"John","LastName":"Doe","Email":"john@example.com"}&#10;{"FirstName":"Jane","LastName":"Smith","Email":"jane@example.com"}'
-            className="manual-textarea"
-            rows={6}
-          />
-          <button onClick={parseManualData} className="parse-button">
-            Parse Data
-          </button>
-        </div>
-      )}
-
-      {error && <div className="error-message">{error}</div>}
+      {error && <div className="error-banner">{error}</div>}
 
       {loadedData.length > 0 && (
         <div className="data-preview">
-          <h3>Loaded Recipients ({loadedData.length})</h3>
-          
-          <div className="email-field-selector">
-            <label htmlFor="to-template">
-              <strong>Email "To" Field Template:</strong>
-            </label>
-            <input
-              id="to-template"
-              type="text"
-              placeholder="e.g., {{Name}} <{{Email}}> or just {{Email}}"
-              value={toTemplate}
-              onChange={(e) => onToTemplateChange(e.target.value)}
-              className="to-template-input"
-            />
-            <p className="helper-text">Use variables with double curly braces (e.g., {{Name}}, {{Email}}). Examples: "{{Email}}" or "{{FirstName}} {{LastName}} <{{Email}}>"</p>
-            
-            <div className="quick-variables">
-              <span className="quick-label">Quick insert:</span>
-              {availableFields.map((field) => (
-                <button
-                  key={field}
-                  className="quick-var-btn"
-                  onClick={() => onToTemplateChange(toTemplate + `{{${field}}}`)}
-                >
-                  {`{{${field}}}`}
-                </button>
-              ))}
-            </div>
-          </div>
-
+          <h3>Loaded Data ({loadedData.length} recipients)</h3>
           <div className="table-container">
             <table className="recipients-table">
               <thead>
                 <tr>
                   {Object.keys(loadedData[0]).map((key) => (
-                    <th key={key}>
-                      {key}
-                    </th>
+                    <th key={key}>{key}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {loadedData.slice(0, 5).map((row, idx) => (
                   <tr key={idx}>
-                    {Object.entries(row).map(([key, value]: [string, any], cidx) => (
-                      <td kevalues(row).map((value: any, cidx) => (
-                      <td key={cidx
-                      </td>
+                    {Object.values(row).map((value: any, cidx: number) => (
+                      <td key={cidx}>{String(value)}</td>
                     ))}
                   </tr>
                 ))}

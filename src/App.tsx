@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { DataSourceSelector } from './components/DataSourceSelector';
-import { ComposePane } from './components/ComposePane';
 import { SendPane } from './components/SendPane';
 import './App.css';
 
-type Tab = 'data' | 'compose' | 'send';
+type Tab = 'data' | 'send';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('data');
   const [recipients, setRecipients] = useState<any[]>([]);
-  const [dataSource, setDataSource] = useState<'csv' | 'xlsx' | 'manual' | null>(null);
   const [availableFields, setAvailableFields] = useState<string[]>([]);
   const [toTemplate, setToTemplate] = useState<string>('');
   const [messageSubject, setMessageSubject] = useState<string>('');
@@ -65,7 +63,7 @@ export const App: React.FC = () => {
     <div className="app">
       <header className="app-header">
         <h1>Mail Merge for Outlook</h1>
-        <p>Create personalized bulk emails from templates</p>
+        <p>Send personalized emails to your recipients from an Outlook draft</p>
       </header>
 
       <div className="tabs">
@@ -76,18 +74,11 @@ export const App: React.FC = () => {
           1. Load Recipients
         </button>
         <button
-          className={`tab-button ${activeTab === 'compose' ? 'active' : ''}`}
-          onClick={() => setActiveTab('compose')}
-          disabled={recipients.length === 0}
-        >
-          2. Message & Send
-        </button>
-        <button
           className={`tab-button ${activeTab === 'send' ? 'active' : ''}`}
           onClick={() => setActiveTab('send')}
-          disabled={recipients.length === 0 || !messageSubject || !messageBody}
+          disabled={recipients.length === 0}
         >
-          3. Merge & Send
+          2. Merge & Send
         </button>
       </div>
 
@@ -95,23 +86,10 @@ export const App: React.FC = () => {
         {activeTab === 'data' && (
           <DataSourceSelector
             onDataLoaded={handleDataLoaded}
-            onSourceChange={setDataSource}
+            onSourceChange={() => {}}
             toTemplate={toTemplate}
             onToTemplateChange={setToTemplate}
             availableFields={availableFields}
-          />
-        )}
-        {activeTab === 'compose' && (
-          <ComposePane
-            subject={messageSubject}
-            body={messageBody}
-            onSubjectChange={setMessageSubject}
-            onBodyChange={setMessageBody}
-            availableFields={availableFields}
-            toTemplate={toTemplate}
-            onToTemplateChange={setToTemplate}
-            onLoadFromOutlook={loadMessageFromOutlook}
-            isLoading={isLoadingMessage}
           />
         )}
         {activeTab === 'send' && (
@@ -122,6 +100,8 @@ export const App: React.FC = () => {
             }}
             recipients={recipients}
             toTemplate={toTemplate}
+            onLoadFromOutlook={loadMessageFromOutlook}
+            isLoadingMessage={isLoadingMessage}
             onSendComplete={() => alert('Drafts created successfully!')}
           />
         )}
