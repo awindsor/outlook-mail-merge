@@ -176,20 +176,20 @@ export const SendPane: React.FC<SendPaneProps> = ({
       <div className="message-preview">
         <div className="preview-section">
           <h3>Subject</h3>
-          <p className="preview-text">{safeTemplate.subject || '(No subject loaded)'}</p>
+          <p className="preview-text">{String(safeTemplate.subject || '(No subject loaded)')}</p>
         </div>
         <div className="preview-section">
           <h3>Body Preview</h3>
-          <p className="preview-text">{safeTemplate.body ? safeTemplate.body.substring(0, 100) + '...' : '(No body loaded)'}</p>
+          <p className="preview-text">{safeTemplate.body ? String(safeTemplate.body).substring(0, 100) + '...' : '(No body loaded)'}</p>
         </div>
         <div className="preview-section">
           <h3>Recipients</h3>
-          <p className="preview-text">{recipients?.length || 0} recipients will receive this message</p>
+          <p className="preview-text">{String(recipients?.length || 0)} recipients will receive this message</p>
         </div>
       </div>
 
-      {messageError && <div className="error-banner">{messageError}</div>}
-      {error && <div className="error-banner">{error}</div>}
+      {messageError && <div className="error-banner">{String(messageError)}</div>}
+      {error && <div className="error-banner">{String(error)}</div>}
 
       <div className="send-controls">
         <button
@@ -208,7 +208,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
               {progress}%
             </div>
           </div>
-          <p className="progress-status">{status}</p>
+          <p className="progress-status">{String(status)}</p>
         </div>
       )}
 
