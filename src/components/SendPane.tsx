@@ -144,10 +144,12 @@ export const SendPane: React.FC<SendPaneProps> = ({
           officeMailbox.getCallbackTokenAsync({ isRest: true }, (result: any) => {
             if (result.status === 'succeeded') {
               graphToken = result.value;
-              console.log('Got Graph API token');
+              console.log('✓ Got Graph API token');
+              setStatus('Got API token, creating drafts...');
               resolve();
             } else {
-              console.log('Failed to get Graph token:', result.error);
+              console.log('✗ Failed to get Graph token:', result.error);
+              setStatus('No Graph token, trying EWS...');
               resolve(); // Continue without token
             }
           });
@@ -173,6 +175,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
       // Try Graph API first, then EWS, then displayNewMessageForm
       let useGraph = !!graphToken;
       let useEws = !useGraph && hasEws;
+      
+      const methodName = useGraph ? 'Microsoft Graph API' : (useEws ? 'EWS' : 'displayNewMessageForm');
+      console.log(`Using method: ${methodName}`);
+      setStatus(`Creating drafts using ${methodName}...`);
 
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i];
@@ -313,8 +319,9 @@ export const SendPane: React.FC<SendPaneProps> = ({
       if (errors.length > 0) {
         const errorDetails = errors.slice(0, 3).join('\n'); // Show first 3 errors
         const moreErrors = errors.length > 3 ? `\n...and ${errors.length - 3} more errors` : '';
+        const methodUsed = useGraph ? 'Graph API' : (useEws ? 'EWS' : 'displayNewMessageForm');
         const fallbackMsg = ewsFailedOnce && hasDisplayForm ? '\n\nNote: EWS failed, automatically switched to opening message windows.' : '';
-        setError(`${useEws ? 'Created' : 'Opened'} ${draftCount} ${useEws ? 'drafts' : 'message forms'} with ${errors.length} errors:\n${errorDetails}${moreErrors}${fallbackMsg}`);
+        setError(`Failed using ${methodUsed}. Created ${draftCount} drafts with ${errors.length} errors:\n${errorDetails}${moreErrors}${fallbackMsg}\n\n💡 Use "📋 Export Messages to Clipboard" button instead - it works perfectly!`);
         console.error('All errors:', errors);
       } else {
         setStatus(useEws 
