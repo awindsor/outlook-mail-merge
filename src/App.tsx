@@ -55,19 +55,36 @@ export const App: React.FC = () => {
       const item = officeObj.context.mailbox.item;
       console.log('Loading message from Outlook item...');
       
-      // Collect sync data
-      const subject = item.subject || '';
+      // Get subject - in compose mode, subject might be an object with getAsync
+      if (item.subject && typeof item.subject.getAsync === 'function') {
+        item.subject.getAsync((result: any) => {
+          if (!isMountedRef.current) return;
+          if (result?.status === 'succeeded' && result.value) {
+            setTimeout(() => {
+              if (isMountedRef.current) setMessageSubject(String(result.value));
+            }, 0);
+          }
+        });
+      } else {
+        // Fallback for read mode or if subject is already a string
+        const subject = typeof item.subject === 'string' ? item.subject : '';
+        setTimeout(() => {
+          if (!isMountedRef.current) return;
+          setMessageSubject(subject);
+        }, 0);
+      }
+      
+      // Get recipients
       let toAddresses = '';
       if (item.to && Array.isArray(item.to) && item.to.length > 0) {
         toAddresses = item.to.map((r: any) => r.emailAddress).join(', ');
       }
-
-      // Apply sync updates on next tick
-      setTimeout(() => {
-        if (!isMountedRef.current) return;
-        setMessageSubject(subject);
-        if (toAddresses) setToTemplate(toAddresses);
-      }, 0);
+      if (toAddresses) {
+        setTimeout(() => {
+          if (!isMountedRef.current) return;
+          setToTemplate(toAddresses);
+        }, 0);
+      }
       
       // Get body asynchronously
       if (item.body && typeof item.body.getAsync === 'function') {

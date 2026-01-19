@@ -33,16 +33,17 @@ export const SendPane: React.FC<SendPaneProps> = ({
   messageError,
   onSendComplete
 }) => {
-  // Ensure template has default values
+  // Ensure template has default values and is actually strings
   const safeTemplate = {
-    subject: template?.subject || '',
-    body: template?.body || ''
+    subject: typeof template?.subject === 'string' ? template.subject : '',
+    body: typeof template?.body === 'string' ? template.body : ''
   };
   
   const [isSending, setIsSending] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [previewIndex, setPreviewIndex] = useState(0);
 
   React.useEffect(() => {
     console.log('SendPane rendered with:', {
@@ -174,22 +175,51 @@ export const SendPane: React.FC<SendPaneProps> = ({
       </div>
 
       <div className="message-preview">
-        <div className="preview-section">
-          <h3>Subject</h3>
-          <p className="preview-text">{String(safeTemplate.subject || '(No subject loaded)')}</p>
-        </div>
-        <div className="preview-section">
-          <h3>Body Preview</h3>
-          <p className="preview-text">{safeTemplate.body ? String(safeTemplate.body).substring(0, 100) + '...' : '(No body loaded)'}</p>
-        </div>
-        <div className="preview-section">
-          <h3>Recipients</h3>
-          <p className="preview-text">{String(recipients?.length || 0)} recipients will receive this message</p>
-        </div>
+        {recipients && recipients.length > 0 ? (
+          <>
+            <div className="preview-navigation">
+              <button
+                onClick={() => setPreviewIndex(Math.max(0, previewIndex - 1))}
+                disabled={previewIndex === 0}
+                className="nav-button"
+              >
+                ← Previous
+              </button>
+              <span className="preview-counter">
+                Preview {previewIndex + 1} of {recipients.length}
+              </span>
+              <button
+                onClick={() => setPreviewIndex(Math.min(recipients.length - 1, previewIndex + 1))}
+                disabled={previewIndex === recipients.length - 1}
+                className="nav-button"
+              >
+                Next →
+              </button>
+            </div>
+            <div className="preview-section">
+              <h3>To:</h3>
+              <p className="preview-text">{renderTemplate(toTemplate, recipients[previewIndex])}</p>
+            </div>
+            <div className="preview-section">
+              <h3>Subject</h3>
+              <p className="preview-text">{renderTemplate(safeTemplate.subject, recipients[previewIndex]) || '(No subject loaded)'}</p>
+            </div>
+            <div className="preview-section">
+              <h3>Body Preview</h3>
+              <div className="preview-text" style={{ whiteSpace: 'pre-wrap' }}>
+                {renderTemplate(safeTemplate.body, recipients[previewIndex]) || '(No body loaded)'}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="preview-section">
+            <p className="preview-text">Load recipients first to see preview</p>
+          </div>
+        )}
       </div>
 
-      {messageError && <div className="error-banner">{String(messageError)}</div>}
-      {error && <div className="error-banner">{String(error)}</div>}
+      {messageError && <div className="error-banner">{typeof messageError === 'string' ? messageError : JSON.stringify(messageError)}</div>}
+      {error && <div className="error-banner">{error}</div>}
 
       <div className="send-controls">
         <button
@@ -208,7 +238,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
               {progress}%
             </div>
           </div>
-          <p className="progress-status">{String(status)}</p>
+          <p className="progress-status">{status}</p>
         </div>
       )}
 
