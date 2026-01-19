@@ -3,19 +3,27 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-// Office Initialize
+// Office Initialize with fallback
+const initializeApp = () => {
+  const root = ReactDOM.createRoot(
+    document.getElementById('root') as HTMLElement
+  );
+
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+};
+
 if (typeof Office !== 'undefined') {
-  Office.onReady(() => {
-    console.log('Office Add-in ready');
+  console.log('Office.js loaded, waiting for ready...');
+  Office.onReady((reason) => {
+    console.log('Office Add-in ready:', reason);
+    initializeApp();
   });
+} else {
+  console.log('Office.js not available, starting app anyway...');
+  // Fallback: start app immediately if Office.js isn't available
+  initializeApp();
 }
-
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
-
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
