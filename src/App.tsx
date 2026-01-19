@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { DataSourceSelector } from './components/DataSourceSelector';
 import { SendPane } from './components/SendPane';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 
 type Tab = 'data' | 'send';
@@ -105,7 +106,8 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="app">
+    <ErrorBoundary>
+      <div className="app">
       <header className="app-header">
         <h1>Mail Merge for Outlook</h1>
         <p>Send personalized emails to your recipients from an Outlook draft</p>
@@ -152,7 +154,8 @@ export const App: React.FC = () => {
           />
         )}
       </div>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

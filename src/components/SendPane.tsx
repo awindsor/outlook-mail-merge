@@ -30,6 +30,27 @@ export const SendPane: React.FC<SendPaneProps> = ({
   const [error, setError] = useState<string>('');
   const engine = new TemplateEngine();
 
+  React.useEffect(() => {
+    console.log('SendPane rendered with:', {
+      subject: template.subject,
+      bodyLength: template.body.length,
+      recipients: recipients.length,
+      toTemplate,
+      messageError,
+      isLoadingMessage
+    });
+  }, [template.subject, template.body, recipients.length, toTemplate, messageError, isLoadingMessage]);
+
+  const handleLoadClick = () => {
+    console.log('Load button clicked');
+    try {
+      onLoadFromOutlook();
+    } catch (e) {
+      console.error('Error calling onLoadFromOutlook:', e);
+      setError(`Load error: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    }
+  };
+
   const validateTemplate = (): boolean => {
     if (!template.subject.trim()) {
       setError('Subject line is required');
@@ -131,7 +152,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
         
         <button 
           className="load-button"
-          onClick={onLoadFromOutlook}
+          onClick={handleLoadClick}
           disabled={isLoadingMessage}
         >
           {isLoadingMessage ? 'Loading...' : 'Load Message from Outlook Draft'}
