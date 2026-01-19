@@ -233,8 +233,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
       }
 
       if (errors.length > 0) {
-        setError(`${useEws ? 'Created' : 'Opened'} ${draftCount} ${useEws ? 'drafts' : 'message forms'} with ${errors.length} errors. Check console for details.`);
-        console.error('Errors:', errors);
+        const errorDetails = errors.slice(0, 3).join('\n'); // Show first 3 errors
+        const moreErrors = errors.length > 3 ? `\n...and ${errors.length - 3} more errors` : '';
+        setError(`${useEws ? 'Created' : 'Opened'} ${draftCount} ${useEws ? 'drafts' : 'message forms'} with ${errors.length} errors:\n${errorDetails}${moreErrors}`);
+        console.error('All errors:', errors);
       } else {
         setStatus(useEws 
           ? `✓ Successfully created ${draftCount} draft messages in your Drafts folder!`
