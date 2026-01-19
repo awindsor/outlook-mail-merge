@@ -104,6 +104,50 @@ export const SendPane: React.FC<SendPaneProps> = ({
     });
   };
 
+  const downloadAppleScript = () => {
+    if (!recipients || recipients.length === 0) {
+      setError('No recipients loaded');
+      return;
+    }
+
+    let script = `-- Outlook Mail Merge AppleScript\n`;
+    script += `-- This script creates ${recipients.length} draft messages in Microsoft Outlook\n`;
+    script += `-- Double-click to run, or run from Script Editor\n\n`;
+    script += `tell application "Microsoft Outlook"\n`;
+    script += `\tactivate\n\n`;
+
+    recipients.forEach((recipient, index) => {
+      const subject = renderTemplate(safeTemplate.subject, recipient);
+      const body = renderTemplate(safeTemplate.body, recipient);
+      const toEmail = renderTemplate(toTemplate, recipient);
+
+      // Escape quotes and backslashes for AppleScript
+      const escapedSubject = subject.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const escapedBody = body.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+      const escapedEmail = toEmail.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+      script += `\t-- Message ${index + 1} of ${recipients.length}\n`;
+      script += `\tset newMessage to make new outgoing message with properties {subject:"${escapedSubject}", content:"${escapedBody}"}\n`;
+      script += `\ttell newMessage\n`;
+      script += `\t\tmake new recipient at end of to recipients with properties {email address:{address:"${escapedEmail}"}}\n`;
+      script += `\tend tell\n\n`;
+    });
+
+    script += `\tdisplay dialog "Created ${recipients.length} draft messages in Outlook!" buttons {"OK"} default button 1\n`;
+    script += `end tell\n`;
+
+    // Download as .applescript file
+    const blob = new Blob([script], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'create-outlook-drafts.applescript';
+    a.click();
+    URL.revokeObjectURL(url);
+    
+    setStatus(`✓ Downloaded AppleScript! Double-click "create-outlook-drafts.applescript" to create all ${recipients.length} drafts in Outlook.`);
+  };
+
   const validateTemplate = (): boolean => {
     if (!safeTemplate.subject.trim()) {
       setError('Subject line is required');
@@ -430,11 +474,20 @@ export const SendPane: React.FC<SendPaneProps> = ({
         
         <button
           className="send-button"
+          onClick={downloadAppleScript}
+          disabled={!safeTemplate.subject || !safeTemplate.body || !recipients || recipients.length === 0}
+          style={{ marginTop: '10px', backgroundColor: '#28a745' }}
+        >
+          🍎 Download AppleScript (macOS)
+        </button>
+        
+        <button
+          className="send-button"
           onClick={exportMessages}
           disabled={!safeTemplate.subject || !safeTemplate.body || !recipients || recipients.length === 0}
-          style={{ marginTop: '10px', backgroundColor: '#0078d4' }}
+          style={{ marginTop: '10px', backgroundColor: '#6c757d' }}
         >
-          📋 Export Messages to Clipboard
+          📋 Export as Text
         </button>
       </div>
 
