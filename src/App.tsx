@@ -31,13 +31,14 @@ export const App: React.FC = () => {
   const loadMessageFromOutlook = async () => {
     setIsLoadingMessage(true);
     try {
-      if (typeof Office !== 'undefined' && Office.context?.mailbox?.item) {
-        const item = Office.context.mailbox.item as any;
+      const officeObj = (window as any).Office;
+      if (officeObj && officeObj.context && officeObj.context.mailbox && officeObj.context.mailbox.item) {
+        const item = officeObj.context.mailbox.item;
         const subject = item.subject || '';
         setMessageSubject(subject);
-        if (item.body && item.body.getAsync) {
+        if (item.body && typeof item.body.getAsync === 'function') {
           item.body.getAsync('html', (result: any) => {
-            if (result.status === 'succeeded') {
+            if (result && result.value) {
               setMessageBody(result.value);
             }
           });
