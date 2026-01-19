@@ -112,61 +112,31 @@ export const SendPane: React.FC<SendPaneProps> = ({
         }
 
         try {
-          console.log(`Creating draft for ${toEmail}...`);
+          console.log(`Creating message for ${toEmail}...`);
           
-          // Use EWS to create draft message
           const officeMailbox = Office.context.mailbox as any;
           
-          // Create EWS request to create a draft
-          const ewsRequest = `<?xml version="1.0" encoding="utf-8"?>
-            <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                          xmlns:m="http://schemas.microsoft.com/exchange/services/2006/messages"
-                          xmlns:t="http://schemas.microsoft.com/exchange/services/2006/types"
-                          xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-              <soap:Header>
-                <t:RequestServerVersion Version="Exchange2013" />
-              </soap:Header>
-              <soap:Body>
-                <m:CreateItem MessageDisposition="SaveOnly">
-                  <m:Items>
-                    <t:Message>
-                      <t:Subject>${subject.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</t:Subject>
-                      <t:Body BodyType="Text">${body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</t:Body>
-                      <t:ToRecipients>
-                        <t:Mailbox>
-                          <t:EmailAddress>${toEmail}</t:EmailAddress>
-                        </t:Mailbox>
-                      </t:ToRecipients>
-                    </t:Message>
-                  </m:Items>
-                </m:CreateItem>
-              </soap:Body>
-            </soap:Envelope>`;
-
-          await new Promise<void>((resolve, reject) => {
-            if (typeof officeMailbox.makeEwsRequestAsync === 'function') {
-              officeMailbox.makeEwsRequestAsync(ewsRequest, (result: any) => {
-                if (result.status === 'succeeded') {
-                  draftCount++;
-                  console.log(`Created draft ${draftCount} for ${toEmail}`);
-                  resolve();
-                } else {
-                  const errorMsg = result.error?.message || 'EWS request failed';
-                  console.error('EWS error:', errorMsg, result);
-                  errors.push(`${toEmail}: ${errorMsg}`);
-                  resolve(); // Continue with next recipient
-                }
-              });
-            } else {
-              const errorMsg = 'EWS API not available in this Outlook version';
-              console.error(errorMsg);
-              errors.push(`${toEmail}: ${errorMsg}`);
-              resolve();
-            }
-          });
+          // Use displayNewMessageForm - works in Outlook on the web
+          if (officeMailbox.displayNewMessageForm) {
+            officeMailbox.displayNewMessageForm({
+              toRecipients: [toEmail],
+              subject: subject,
+              htmlBody: body
+            });
+            
+            draftCount++;
+            console.log(`Opened message form ${draftCount} for ${toEmail}`);
+            
+            // Small delay between opening windows
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } else {
+            const errorMsg = 'displayNewMessageForm API not available';
+            console.error(errorMsg);
+            errors.push(`${toEmail}: ${errorMsg}`);
+          }
           
         } catch (err) {
-          console.error(`Error creating draft for ${toEmail}:`, err);
+          console.error(`Error creating message for ${toEmail}:`, err);
           const errorMsg = err instanceof Error ? err.message : String(err);
           errors.push(`${toEmail}: ${errorMsg}`);
         }
@@ -176,10 +146,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
       }
 
       if (errors.length > 0) {
-        setError(`Created ${draftCount} drafts with ${errors.length} errors. Check console for details.`);
+        setError(`Opened ${draftCount} message forms with ${errors.length} errors. Check console for details.`);
         console.error('Errors:', errors);
       } else {
-        setStatus(`✓ Successfully created ${draftCount} draft messages in your Drafts folder!`);
+        setStatus(`✓ Opened ${draftCount} message forms! You can now save them as drafts or send them.`);
       }
       onSendComplete();
     } catch (err) {
@@ -290,10 +260,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
       <div className="send-tips">
         <h4>Important:</h4>
         <ul>
-          <li>Drafts will be saved to your Drafts folder</li>
-          <li>Each message will be personalized with recipient data</li>
-          <li>Review and edit drafts before sending</li>
-          <li>Send drafts manually when ready</li>
+          <li>A new message window will open for each recipient</li>
+          <li>Each message will be pre-filled with personalized content</li>
+          <li>Review each message before sending</li>
+          <li>Save as draft or send immediately from each window</li>
         </ul>
       </div>
 
@@ -301,9 +271,9 @@ export const SendPane: React.FC<SendPaneProps> = ({
         <h4>Workflow:</h4>
         <ol>
           <li>Click "Create Email Drafts"</li>
-          <li>Drafts will be created in your Drafts folder</li>
-          <li>Open Drafts folder to review personalized messages</li>
-          <li>Send each draft individually or use Outlook's batch send</li>
+          <li>New compose windows will open for each recipient</li>
+          <li>Review the personalized message in each window</li>
+          <li>Click Send in each window or save as draft</li>
         </ol>
       </div>
     </div>
