@@ -66,6 +66,44 @@ export const SendPane: React.FC<SendPaneProps> = ({
     }
   };
 
+  const exportMessages = () => {
+    if (!recipients || recipients.length === 0) {
+      setError('No recipients loaded');
+      return;
+    }
+
+    let exportText = 'PERSONALIZED EMAIL MESSAGES\n';
+    exportText += '='.repeat(50) + '\n\n';
+
+    recipients.forEach((recipient, index) => {
+      const subject = renderTemplate(safeTemplate.subject, recipient);
+      const body = renderTemplate(safeTemplate.body, recipient);
+      const toEmail = renderTemplate(toTemplate, recipient);
+
+      exportText += `MESSAGE ${index + 1} of ${recipients.length}\n`;
+      exportText += '-'.repeat(50) + '\n';
+      exportText += `To: ${toEmail}\n`;
+      exportText += `Subject: ${subject}\n\n`;
+      exportText += `${body}\n\n`;
+      exportText += '='.repeat(50) + '\n\n';
+    });
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(exportText).then(() => {
+      setStatus(`✓ Copied ${recipients.length} personalized messages to clipboard! You can paste them into a text editor.`);
+    }).catch(() => {
+      // Fallback: download as file
+      const blob = new Blob([exportText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mail-merge-messages.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus(`✓ Downloaded ${recipients.length} personalized messages as text file!`);
+    });
+  };
+
   const validateTemplate = (): boolean => {
     if (!safeTemplate.subject.trim()) {
       setError('Subject line is required');
@@ -93,6 +131,17 @@ export const SendPane: React.FC<SendPaneProps> = ({
       // Check if Office.js is available
       if (typeof Office === 'undefined') {
         setError('Office.js not available. This add-in must run in Outlook.');
+        setIsSending(false);
+        return;
+      }
+
+      const officeMailbox = Office.context.mailbox as any;
+      
+      // Check if we're in Outlook on the web (limited API support)
+      const isOutlookWeb = !officeMailbox.displayNewMessageForm;
+      
+      if (isOutlookWeb) {
+        setError('Outlook on the web has limited API support. Please use Outlook Desktop for full functionality, or use the "Export Messages" button below to copy/paste messages manually.');
         setIsSending(false);
         return;
       }
@@ -243,6 +292,15 @@ export const SendPane: React.FC<SendPaneProps> = ({
           disabled={isSending || !safeTemplate.subject || !safeTemplate.body}
         >
           {isSending ? 'Creating Drafts...' : `Create ${recipients?.length || 0} Email Drafts`}
+        </button>
+        
+        <button
+          className="send-button"
+          onClick={exportMessages}
+          disabled={!safeTemplate.subject || !safeTemplate.body || !recipients || recipients.length === 0}
+          style={{ marginTop: '10px', backgroundColor: '#0078d4' }}
+        >
+          Export Messages to Clipboard
         </button>
       </div>
 
