@@ -98,6 +98,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
       }
 
       let draftCount = 0;
+      const errors: string[] = [];
 
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i];
@@ -111,37 +112,78 @@ export const SendPane: React.FC<SendPaneProps> = ({
         }
 
         try {
-          console.log(`Creating message for ${toEmail}...`);
+          console.log(`Creating draft for ${toEmail}...`);
           
-          // Use displayNewMessageForm which is supported in Outlook
-          const officeMailbox = (Office.context.mailbox as any);
+          // Get access token for REST API
+          const officeMailbox = Office.context.mailbox as any;
           
-          if (officeMailbox.displayNewMessageForm) {
-            officeMailbox.displayNewMessageForm({
-              toRecipients: [toEmail],
-              subject: subject,
-              htmlBody: body
+          await new Promise<void>((resolve, reject) => {
+            officeMailbox.getCallbackTokenAsync({ isRest: true }, (result: any) => {
+              if (result.status === 'succeeded') {
+                const token = result.value;
+                
+                // Create draft using Outlook REST API
+                const restUrl = officeMailbox.restUrl || 'https://outlook.office.com/api/v2.0';
+                const messagePayload = {
+                  Subject: subject,
+                  Body: {
+                    ContentType: 'Text',
+                    Content: body
+                  },
+                  ToRecipients: [
+                    {
+                      EmailAddress: {
+                        Address: toEmail
+                      }
+                    }
+                  ]
+                };
+
+                fetch(`${restUrl}/me/messages`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(messagePayload)
+                })
+                  .then(response => {
+                    if (response.ok) {
+                      draftCount++;
+                      console.log(`Created draft ${draftCount} for ${toEmail}`);
+                      resolve();
+                    } else {
+                      return response.text().then(text => {
+                        throw new Error(`API error: ${response.status} - ${text}`);
+                      });
+                    }
+                  })
+                  .catch(err => {
+                    console.error(`Error creating draft for ${toEmail}:`, err);
+                    errors.push(`${toEmail}: ${err.message}`);
+                    resolve(); // Continue with next recipient
+                  });
+              } else {
+                reject(new Error('Failed to get access token: ' + result.error?.message));
+              }
             });
-            draftCount++;
-            console.log(`Opened message form ${draftCount} for ${toEmail}`);
-            
-            // Add delay between opening windows to prevent issues
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          } else {
-            setError('displayNewMessageForm API not available in this Outlook version');
-            break;
-          }
+          });
           
         } catch (err) {
           console.error(`Error creating draft for ${toEmail}:`, err);
-          setError(`Error creating draft for ${toEmail}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+          errors.push(`${toEmail}: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
 
         setProgress(Math.floor(((i + 1) / recipients.length) * 100));
-        setStatus(`Processing ${i + 1} of ${recipients.length} - ${toEmail}`);
+        setStatus(`Created ${draftCount} of ${i + 1} drafts...`);
       }
 
-      setStatus(`✓ Opened ${draftCount} new message forms!`);
+      if (errors.length > 0) {
+        setError(`Created ${draftCount} drafts with ${errors.length} errors. Check console for details.`);
+        console.error('Errors:', errors);
+      } else {
+        setStatus(`✓ Successfully created ${draftCount} draft messages in your Drafts folder!`);
+      }
       onSendComplete();
     } catch (err) {
       console.error('Error in createDrafts:', err);
@@ -251,10 +293,10 @@ export const SendPane: React.FC<SendPaneProps> = ({
       <div className="send-tips">
         <h4>Important:</h4>
         <ul>
-          <li>This opens a new message form for each recipient</li>
-          <li>Each message will be pre-filled with personalized content</li>
-          <li>You can review and edit before sending</li>
-          <li>Save as draft or send immediately</li>
+          <li>Drafts will be saved to your Drafts folder</li>
+          <li>Each message will be personalized with recipient data</li>
+          <li>Review and edit drafts before sending</li>
+          <li>Send drafts manually when ready</li>
         </ul>
       </div>
 
@@ -262,9 +304,9 @@ export const SendPane: React.FC<SendPaneProps> = ({
         <h4>Workflow:</h4>
         <ol>
           <li>Click "Create Email Drafts"</li>
-          <li>New message windows will open for each recipient</li>
-          <li>Review the personalized content</li>
-          <li>Save as draft or click Send for each message</li>
+          <li>Drafts will be created in your Drafts folder</li>
+          <li>Open Drafts folder to review personalized messages</li>
+          <li>Send each draft individually or use Outlook's batch send</li>
         </ol>
       </div>
     </div>
