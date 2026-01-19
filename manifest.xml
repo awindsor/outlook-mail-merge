@@ -1,13 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
            xsi:type="MailApp">
-  <Id>12345678-1234-1234-1234-123456789012</Id>
+  <Id>a3b2c1d0-e4f5-6789-a0b1-c2d3e4f5a6b7</Id>
   <Version>1.0.0.0</Version>
   <ProviderName>Mail Merge</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Mail Merge"/>
   <Description DefaultValue="Create and send personalized bulk emails from templates"/>
+  <IconUrl DefaultValue="https://outlook-mail-merge.vercel.app/assets/icon-64.png"/>
+  <HighResolutionIconUrl DefaultValue="https://outlook-mail-merge.vercel.app/assets/icon-128.png"/>
+  <SupportUrl DefaultValue="https://github.com/awindsor/outlook-mail-merge"/>
+  <AppDomains>
+    <AppDomain>https://outlook-mail-merge.vercel.app</AppDomain>
+  </AppDomains>
   <Hosts>
     <Host xsi:type="MailHost">
       <DesktopFormFactor>
@@ -21,6 +28,11 @@
                   <Title resid="paneButtonTooltipTitle"/>
                   <Description resid="paneButtonTooltipDescription"/>
                 </Supertip>
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16"/>
+                  <bt:Image size="32" resid="Icon.32x32"/>
+                  <bt:Image size="80" resid="Icon.80x80"/>
+                </Icon>
                 <Action xsi:type="ShowTaskpane">
                   <TaskpaneId>taskpaneId</TaskpaneId>
                   <SourceLocation resid="Taskpane.Url"/>
@@ -32,7 +44,13 @@
       </DesktopFormFactor>
     </Host>
   </Hosts>
+  <Permissions>ReadWriteMailbox</Permissions>
   <Resources>
+    <bt:Images>
+      <bt:Image id="Icon.16x16" DefaultValue="https://outlook-mail-merge.vercel.app/assets/icon-16.png"/>
+      <bt:Image id="Icon.32x32" DefaultValue="https://outlook-mail-merge.vercel.app/assets/icon-32.png"/>
+      <bt:Image id="Icon.80x80" DefaultValue="https://outlook-mail-merge.vercel.app/assets/icon-80.png"/>
+    </bt:Images>
     <bt:Urls>
       <bt:Url id="Taskpane.Url" DefaultValue="https://outlook-mail-merge.vercel.app/taskpane.html"/>
     </bt:Urls>
