@@ -137,12 +137,31 @@ export const SendPane: React.FC<SendPaneProps> = ({
 
       const officeMailbox = Office.context.mailbox as any;
       
+      // Try to get Graph API token first
+      let graphToken: string | null = null;
+      try {
+        await new Promise<void>((resolve, reject) => {
+          officeMailbox.getCallbackTokenAsync({ isRest: true }, (result: any) => {
+            if (result.status === 'succeeded') {
+              graphToken = result.value;
+              console.log('Got Graph API token');
+              resolve();
+            } else {
+              console.log('Failed to get Graph token:', result.error);
+              resolve(); // Continue without token
+            }
+          });
+        });
+      } catch (err) {
+        console.log('Error getting Graph token:', err);
+      }
+
       // Check if we have EWS support (desktop) or display form (either)
       const hasEws = typeof officeMailbox.makeEwsRequestAsync === 'function';
       const hasDisplayForm = typeof officeMailbox.displayNewMessageForm === 'function';
       
-      if (!hasEws && !hasDisplayForm) {
-        setError('This Outlook version has limited API support. Please use the "Export Messages" button below to copy/paste messages manually.');
+      if (!graphToken && !hasEws && !hasDisplayForm) {
+        setError('⚠️ Your Outlook version doesn\'t support automated draft creation.\n\nPlease use the "Export Messages to Clipboard" button below instead.\n\nThis will copy all personalized messages that you can paste into new emails.');
         setIsSending(false);
         return;
       }
@@ -151,8 +170,9 @@ export const SendPane: React.FC<SendPaneProps> = ({
       const errors: string[] = [];
       let ewsFailedOnce = false;
 
-      // Skip EWS for now since it's failing - use displayNewMessageForm directly
-      let useEws = false; // hasEws;
+      // Try Graph API first, then EWS, then displayNewMessageForm
+      let useGraph = !!graphToken;
+      let useEws = !useGraph && hasEws;
 
       for (let i = 0; i < recipients.length; i++) {
         const recipient = recipients[i];
@@ -168,7 +188,53 @@ export const SendPane: React.FC<SendPaneProps> = ({
         try {
           console.log(`Creating message for ${toEmail}...`);
           
-          if (useEws) {
+          if (useGraph && graphToken) {
+            // Use Microsoft Graph API - most reliable method
+            try {
+              const graphEndpoint = officeMailbox.restUrl || 'https://outlook.office.com/api/v2.0';
+              const response = await fetch(`${graphEndpoint}/me/messages`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${graphToken}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  Subject: subject,
+                  Body: {
+                    ContentType: 'Text',
+                    Content: body
+                  },
+                  ToRecipients: [{
+                    EmailAddress: {
+                      Address: toEmail
+                    }
+                  }]
+                })
+              });
+
+              if (response.ok) {
+                draftCount++;
+                console.log(`Created draft ${draftCount} via Graph API for ${toEmail}`);
+              } else {
+                const errorData = await response.text();
+                console.error('Graph API error:', errorData);
+                errors.push(`${toEmail}: Graph API failed - ${response.status}`);
+                
+                // On first failure, switch to EWS or display form
+                if (draftCount === 0) {
+                  useGraph = false;
+                  useEws = hasEws;
+                  console.log('Switching from Graph API to', useEws ? 'EWS' : 'displayNewMessageForm');
+                  // Retry this message with the new method
+                  i--;
+                  continue;
+                }
+              }
+            } catch (err) {
+              console.error('Graph API fetch error:', err);
+              errors.push(`${toEmail}: ${err instanceof Error ? err.message : 'Network error'}`);
+            }
+          } else if (useEws) {
             // Use EWS for desktop - creates drafts directly in Drafts folder
             const ewsRequest = `<?xml version="1.0" encoding="utf-8"?>
               <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -342,13 +408,18 @@ export const SendPane: React.FC<SendPaneProps> = ({
       {error && <div className="error-banner">{error}</div>}
 
       <div className="send-controls">
-        <button
-          className="send-button"
-          onClick={createDrafts}
-          disabled={isSending || !safeTemplate.subject || !safeTemplate.body}
-        >
-          {isSending ? 'Creating Drafts...' : `Create ${recipients?.length || 0} Email Drafts`}
-        </button>
+        {(typeof Office !== 'undefined' && 
+          typeof Office.context.mailbox !== 'undefined' && 
+          (typeof (Office.context.mailbox as any).makeEwsRequestAsync === 'function' || 
+           typeof (Office.context.mailbox as any).displayNewMessageForm === 'function')) && (
+          <button
+            className="send-button"
+            onClick={createDrafts}
+            disabled={isSending || !safeTemplate.subject || !safeTemplate.body || !recipients || recipients.length === 0}
+          >
+            {isSending ? 'Creating Drafts...' : `Create ${recipients?.length || 0} Email Drafts`}
+          </button>
+        )}
         
         <button
           className="send-button"
@@ -356,7 +427,7 @@ export const SendPane: React.FC<SendPaneProps> = ({
           disabled={!safeTemplate.subject || !safeTemplate.body || !recipients || recipients.length === 0}
           style={{ marginTop: '10px', backgroundColor: '#0078d4' }}
         >
-          Export Messages to Clipboard
+          📋 Export Messages to Clipboard
         </button>
       </div>
 
@@ -372,12 +443,12 @@ export const SendPane: React.FC<SendPaneProps> = ({
       )}
 
       <div className="send-tips">
-        <h4>Important:</h4>
+        <h4>How to use Export:</h4>
         <ul>
-          <li>A new message window will open for each recipient</li>
-          <li>Each message will be pre-filled with personalized content</li>
-          <li>Review each message before sending</li>
-          <li>Save as draft or send immediately from each window</li>
+          <li>Click "📋 Export Messages to Clipboard" above</li>
+          <li>All personalized messages will be copied</li>
+          <li>Paste into a text file to save, or create new emails manually</li>
+          <li>Each recipient's message is clearly separated</li>
         </ul>
       </div>
 
