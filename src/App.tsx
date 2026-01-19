@@ -174,7 +174,10 @@ export const App: React.FC = () => {
             onLoadFromOutlook={loadMessageFromOutlook}
             isLoadingMessage={isLoadingMessage}
             messageError={messageError}
-            onSendComplete={() => alert('Drafts created successfully!')}
+            onSendComplete={() => {
+              console.log('Drafts created successfully!');
+              // Stay on the send tab to show completion message
+            }}
           />
         )}
       </div>
